@@ -21,6 +21,14 @@ def _pdf_path(file_id: str) -> Path:
     return settings.MEDIA_TEMP_ROOT / f'{file_id}.pdf'
 
 
+def _to_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+    return bool(value)
+
+
 def upload_pdf_view(request):
     _ensure_media_dirs()
     error_message = None
@@ -86,21 +94,20 @@ def sign_pdf_view(request, file_id):
         if len(placements) > 100:
             raise ValueError('Too many placements.')
 
-        add_date = form.cleaned_data['add_date']
+        default_include_signature = form.cleaned_data['include_signature']
+        default_include_date = form.cleaned_data['include_date']
 
         doc = fitz.open(input_pdf_path)
         for placement in placements:
             if not isinstance(placement, dict):
                 raise ValueError('Invalid placement payload.')
 
-            signature_data = placement.get('signature_data', '')
-            if not isinstance(signature_data, str) or not signature_data.startswith('data:image/png;base64,'):
-                raise ValueError('Invalid signature format.')
-
-            _, image_data = signature_data.split(',', 1)
-            signature_bytes = base64.b64decode(image_data)
-            if not signature_bytes:
-                raise ValueError('Empty signature image.')
+            placement_include_signature = _to_bool(
+                placement.get('include_signature', default_include_signature)
+            )
+            placement_include_date = _to_bool(placement.get('include_date', default_include_date))
+            if not placement_include_signature and not placement_include_date:
+                raise ValueError('Select signature, date, or both for each placement.')
 
             page_number = int(placement.get('page_number'))
             x_ratio = float(placement.get('x_ratio'))
@@ -114,35 +121,60 @@ def sign_pdf_view(request, file_id):
             page = doc[page_number - 1]
             page_rect = page.rect
 
-            signature_pixmap = fitz.Pixmap(signature_bytes)
-            if signature_pixmap.width <= 0 or signature_pixmap.height <= 0:
-                raise ValueError('Invalid signature dimensions.')
-            aspect_ratio = signature_pixmap.width / signature_pixmap.height
-
-            sig_width = max(120, page_rect.width * 0.24)
-            sig_height = sig_width / max(aspect_ratio, 0.1)
-            max_sig_height = page_rect.height * 0.16
-            if sig_height > max_sig_height:
-                sig_height = max_sig_height
-                sig_width = sig_height * aspect_ratio
-
             x = page_rect.width * x_ratio
             y = page_rect.height * y_ratio
 
-            # Keep signature within page boundaries while preserving click-based placement.
-            x = min(max(0, x), max(0, page_rect.width - sig_width))
-            y = min(max(0, y), max(0, page_rect.height - sig_height))
+            sig_rect = None
+            if placement_include_signature:
+                signature_data = placement.get('signature_data', '')
+                if not isinstance(signature_data, str) or not signature_data.startswith('data:image/png;base64,'):
+                    raise ValueError('Invalid signature format.')
 
-            sig_rect = fitz.Rect(x, y, x + sig_width, y + sig_height)
-            page.insert_image(sig_rect, stream=signature_bytes, keep_proportion=True, overlay=True)
+                _, image_data = signature_data.split(',', 1)
+                signature_bytes = base64.b64decode(image_data)
+                if not signature_bytes:
+                    raise ValueError('Empty signature image.')
 
-            if add_date:
+                signature_pixmap = fitz.Pixmap(signature_bytes)
+                if signature_pixmap.width <= 0 or signature_pixmap.height <= 0:
+                    raise ValueError('Invalid signature dimensions.')
+                aspect_ratio = signature_pixmap.width / signature_pixmap.height
+
+                sig_width = max(120, page_rect.width * 0.24)
+                sig_height = sig_width / max(aspect_ratio, 0.1)
+                max_sig_height = page_rect.height * 0.16
+                if sig_height > max_sig_height:
+                    sig_height = max_sig_height
+                    sig_width = sig_height * aspect_ratio
+
+                # Keep signature within page boundaries while preserving click-based placement.
+                x = min(max(0, x), max(0, page_rect.width - sig_width))
+                y = min(max(0, y), max(0, page_rect.height - sig_height))
+                sig_rect = fitz.Rect(x, y, x + sig_width, y + sig_height)
+                page.insert_image(sig_rect, stream=signature_bytes, keep_proportion=True, overlay=True)
+
+            if placement_include_date:
                 date_text = datetime.now().strftime('%Y-%m-%d')
-                # Date is anchored at the exact click position when enabled.
-                date_x = min(max(0, page_rect.width * x_ratio), page_rect.width - 95)
-                date_y = min(max(12, page_rect.height * y_ratio), page_rect.height - 10)
+                date_fontsize = 11
+
+                try:
+                    date_width = fitz.get_text_length(date_text, fontsize=date_fontsize)
+                except Exception:
+                    date_width = 64
+
+                # Always anchor date just below the click position.
+                date_x = min(max(0, x), max(0, page_rect.width - date_width))
+                date_y = y + date_fontsize + 6
+                date_y = min(max(date_fontsize + 2, date_y), page_rect.height - 2)
+
                 date_point = fitz.Point(date_x, date_y)
-                page.insert_text(date_point, date_text, fontsize=11, color=(0, 0, 0))
+                page.insert_text(
+                    date_point,
+                    date_text,
+                    fontsize=date_fontsize,
+                    fontname='times-italic',
+                    color=(0, 0, 0),
+                )
 
         output_id = uuid4().hex
         output_path = settings.MEDIA_SIGNED_ROOT / f'{output_id}_signed.pdf'

@@ -13,6 +13,8 @@ const removeLastPlacementButton = document.getElementById('remove-last-placement
 const submitButton = document.getElementById('submit-sign');
 const signForm = document.getElementById('sign-form');
 const placementStatus = document.getElementById('placement-status');
+const includeSignatureCheckbox = document.getElementById('include-signature');
+const includeDateCheckbox = document.getElementById('include-date');
 
 const placementsInput = document.getElementById('placements-json');
 
@@ -123,18 +125,49 @@ function buildTrimmedSignatureDataUrl() {
   return trimmedCanvas.toDataURL('image/png');
 }
 
-function renderPlacementPreview(pageWrapper, x, y, displayWidth, displayHeight, signatureDataUrl, placementId) {
-  const image = document.createElement('img');
-  image.className = 'sig-preview';
-  image.alt = 'Signature preview';
-  image.src = signatureDataUrl;
-  image.style.left = `${x}px`;
-  image.style.top = `${y}px`;
-  image.style.width = `${displayWidth}px`;
-  image.style.height = `${displayHeight}px`;
-  image.style.display = 'block';
-  image.dataset.placementId = String(placementId);
-  pageWrapper.appendChild(image);
+function renderPlacementPreview(pageWrapper, placement) {
+  const {
+    id,
+    x,
+    y,
+    displayWidth,
+    displayHeight,
+    signatureData,
+    includeSignature,
+    includeDate,
+  } = placement;
+
+  if (includeSignature && signatureData) {
+    const image = document.createElement('img');
+    image.className = 'sig-preview';
+    image.alt = 'Signature preview';
+    image.src = signatureData;
+    image.style.left = `${x}px`;
+    image.style.top = `${y}px`;
+    image.style.width = `${displayWidth}px`;
+    image.style.height = `${displayHeight}px`;
+    image.style.display = 'block';
+    image.dataset.placementId = String(id);
+    pageWrapper.appendChild(image);
+  }
+
+  if (includeDate) {
+    const datePreview = document.createElement('span');
+    datePreview.className = 'sig-date-preview';
+    datePreview.textContent = new Date().toISOString().slice(0, 10);
+    datePreview.dataset.placementId = String(id);
+    const estimatedWidth = 72;
+    const verticalOffset = 16;
+    const maxDateX = Math.max(0, pageWrapper.clientWidth - estimatedWidth);
+    const maxDateY = Math.max(0, pageWrapper.clientHeight - verticalOffset);
+    const dateX = Math.min(Math.max(0, x), maxDateX);
+    const dateY = Math.min(Math.max(0, y + verticalOffset), maxDateY);
+    datePreview.style.left = `${dateX}px`;
+    datePreview.style.top = `${dateY}px`;
+
+    datePreview.style.display = 'block';
+    pageWrapper.appendChild(datePreview);
+  }
 }
 
 function syncPlacementsInput() {
@@ -143,6 +176,8 @@ function syncPlacementsInput() {
     x_ratio: placement.xRatio,
     y_ratio: placement.yRatio,
     signature_data: placement.signatureData,
+    include_signature: placement.includeSignature,
+    include_date: placement.includeDate,
   }));
   placementsInput.value = JSON.stringify(payload);
   placementStatus.textContent = `Placements: ${placements.length}`;
@@ -155,18 +190,24 @@ function removeLastPlacement() {
   }
 
   const last = placements.pop();
-  const marker = pagesContainer.querySelector(`[data-placement-id="${last.id}"]`);
-  if (marker) {
-    marker.remove();
-  }
+  const markers = pagesContainer.querySelectorAll(`[data-placement-id="${last.id}"]`);
+  markers.forEach((marker) => marker.remove());
   syncPlacementsInput();
 }
 
 function addPlacementClickHandler(canvas, pageNumber) {
   canvas.addEventListener('click', (event) => {
+    const shouldIncludeSignature = includeSignatureCheckbox?.checked ?? true;
+    const shouldIncludeDate = includeDateCheckbox?.checked ?? false;
+
+    if (!shouldIncludeSignature && !shouldIncludeDate) {
+      placementStatus.textContent = 'Placements: select signature, date, or both';
+      return;
+    }
+
     updateLatestSignatureData();
 
-    if (!hasSignatureInk || !latestSignatureDataUrl) {
+    if (shouldIncludeSignature && (!hasSignatureInk || !latestSignatureDataUrl)) {
       placementStatus.textContent = 'Placements: draw signature first';
       return;
     }
@@ -181,27 +222,27 @@ function addPlacementClickHandler(canvas, pageNumber) {
     const pageWrapper = canvas.parentElement;
     const displayWidth = Math.max(80, rect.width * 0.28);
     const displayHeight = displayWidth * 0.35;
+    const signatureData = shouldIncludeSignature ? latestSignatureDataUrl : '';
 
     const placementId = placementIdCounter;
     placementIdCounter += 1;
 
-    placements.push({
+    const placement = {
       id: placementId,
       pageNumber,
       xRatio,
       yRatio,
-      signatureData: latestSignatureDataUrl,
-    });
-
-    renderPlacementPreview(
-      pageWrapper,
       x,
       y,
       displayWidth,
       displayHeight,
-      latestSignatureDataUrl,
-      placementId,
-    );
+      signatureData,
+      includeSignature: shouldIncludeSignature,
+      includeDate: shouldIncludeDate,
+    };
+    placements.push(placement);
+
+    renderPlacementPreview(pageWrapper, placement);
 
     syncPlacementsInput();
   });
@@ -237,6 +278,15 @@ async function renderPdf() {
 }
 
 signForm.addEventListener('submit', (event) => {
+  const shouldIncludeSignature = includeSignatureCheckbox?.checked ?? true;
+  const shouldIncludeDate = includeDateCheckbox?.checked ?? false;
+
+  if (!shouldIncludeSignature && !shouldIncludeDate) {
+    event.preventDefault();
+    placementStatus.textContent = 'Placements: select signature, date, or both';
+    return;
+  }
+
   if (!placements.length) {
     event.preventDefault();
     placementStatus.textContent = 'Placements: click one or more positions on the PDF';

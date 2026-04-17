@@ -20,4 +20,5 @@ class UploadPDFForm(forms.Form):
 
 class SignPDFForm(forms.Form):
     placements_json = forms.CharField()
-    add_date = forms.BooleanField(required=False)
+    include_signature = forms.BooleanField(required=False, initial=True)
+    include_date = forms.BooleanField(required=False)

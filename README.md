@@ -1,6 +1,6 @@
 # PDF Signer (Django + pdf.js + PyMuPDF)
 
-A simple server-rendered Django web app to upload a PDF, draw a signature, click to place it on a page, optionally add the current date, and download a signed PDF.
+A simple server-rendered Django web app to upload a PDF, draw a signature, click to place items on a page, optionally add the current date, and download a signed PDF.
 
 ## Features
 
@@ -8,7 +8,7 @@ A simple server-rendered Django web app to upload a PDF, draw a signature, click
 - Browser PDF preview using pdf.js
 - Draw signature on an HTML canvas
 - Click on pages multiple times to place one or more signatures
-- Optional current date next to signature
+- Choose to place signature, date, or both
 - Preview placement in the browser
 - Save and download signed PDF
 
@@ -54,7 +54,7 @@ python manage.py runserver
 1. Upload a PDF.
 2. Draw signature in the signature canvas.
 3. Click anywhere on rendered PDF pages to add one or more placements.
-4. Optionally check **Add current date next to each signature**.
+4. Choose **Include signature**, **Include current date**, or both.
 5. Click **Save and Download Signed PDF**.
 
 ## Notes
