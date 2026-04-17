@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Logout</h1><p>Confirm logout from your account.</p></div></section>
+<section class="section"><div class="container card form-card" style="max-width: 600px;"><form method="post">{% csrf_token %}<button class="btn" type="submit">Logout</button></form></div></section>
+{% endblock %}

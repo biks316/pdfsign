@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Add Date to PDF</h1><p>Upload a PDF and place a date stamp on a specific page position.</p></div></section>
+<section class="section">
+  <div class="container form-wrap">
+    <div class="card form-card">
+      {% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Upload and Continue</button>
+      </form>
+    </div>
+    <div>
+      <div class="content-section"><h2>What this tool does</h2><p>Adds a clean text date overlay to your selected point in the PDF.</p></div>
+      <div class="content-section"><h2>How to use</h2><ol class="list-clean"><li>Upload the PDF.</li><li>Click in preview to set date location.</li><li>Apply and download.</li></ol></div>
+      <div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div>
+    </div>
+  </div>
+</section>
+{% endblock %}

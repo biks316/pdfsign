@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="PDFSign Studio">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1c71ff"/>
+      <stop offset="100%" stop-color="#19b7a7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#f6f8fb"/>
+  <rect x="72" y="72" width="1056" height="486" rx="26" fill="white" stroke="#d8e0ee"/>
+  <rect x="112" y="126" width="380" height="380" rx="22" fill="url(#g)"/>
+  <text x="150" y="290" font-size="66" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" fill="white">PDF</text>
+  <text x="150" y="360" font-size="54" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" fill="white">Tools</text>
+  <text x="532" y="290" font-size="62" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" fill="#0f1825">PDFSign Studio</text>
+  <text x="532" y="358" font-size="32" font-family="Plus Jakarta Sans, sans-serif" fill="#556176">Sign, stamp, and optimize files faster.</text>
+</svg>

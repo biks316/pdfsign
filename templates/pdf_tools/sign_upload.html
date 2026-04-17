@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Sign PDF</h1><p>Upload a PDF to draw or upload your signature and place it where needed.</p></div></section>
+<section class="section">
+  <div class="container form-wrap">
+    <div class="card form-card">
+      {% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Upload and Continue</button>
+      </form>
+    </div>
+    <div>
+      <div class="content-section"><h2>What this tool does</h2><p>Places a signature image overlay and optional date overlay on top of your PDF without rewriting original content blocks.</p></div>
+      <div class="content-section"><h2>How to use</h2><ol class="list-clean"><li>Upload your PDF.</li><li>Draw or upload a signature.</li><li>Click one or more placement points and download.</li></ol></div>
+      <div class="content-section"><h2>Benefits</h2><ul class="list-clean"><li>Fast in-browser preview with pdf.js.</li><li>Supports multiple placements across pages.</li><li>Maintains document layout.</li></ul></div>
+      <div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div>
+    </div>
+  </div>
+</section>
+{% endblock %}

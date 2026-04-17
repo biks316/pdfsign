@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Image Tools</h1><p>Convert, resize, crop, compress, and optimize images in a single workflow hub.</p></div></section>
+<section class="section"><div class="container tool-grid">
+  <a class="tool-card" href="{% url 'image_tools:image_to_pdf' %}"><h3>Image to PDF</h3><p>Build one PDF from multiple images.</p></a>
+  <a class="tool-card" href="{% url 'image_tools:resize_image' %}"><h3>Resize Image</h3><p>Set exact output dimensions.</p></a>
+  <a class="tool-card" href="{% url 'image_tools:compress_image' %}"><h3>Compress Image</h3><p>Reduce file size for web upload.</p></a>
+  <a class="tool-card" href="{% url 'image_tools:crop_image' %}"><h3>Crop Image</h3><p>Trim to exact area.</p></a>
+  <a class="tool-card" href="{% url 'image_tools:convert_image' %}"><h3>Convert Image</h3><p>PNG, JPG, WEBP conversion.</p></a>
+  <a class="tool-card" href="{% url 'image_tools:enhance_document' %}"><h3>Enhance Document</h3><p>Clean scanned photos.</p></a>
+  <a class="tool-card" href="{% url 'image_tools:remove_background' %}"><h3>Remove Background</h3><p>Placeholder service design for future provider.</p></a>
+</div></section>
+{% endblock %}

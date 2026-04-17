@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-card">
+      <h1>Professional PDF and Image Tools in One Fast Platform</h1>
+      <p>Sign documents, add date stamps, and optimize images without switching apps. Clean workflows, responsive UI, and SEO-ready architecture.</p>
+      <div class="hero-actions">
+        <a class="btn" href="{% url 'pdf_tools:sign_pdf' %}">Start Sign PDF</a>
+        <a class="btn btn-secondary" href="{% url 'image_tools:index' %}">Browse Image Tools</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <h2>Why teams choose PDFSign Studio</h2>
+      <ul class="list-clean">
+        {% for item in trust_items %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      <p class="helper">Built as a modular Django monolith so new tools can be shipped quickly without platform rewrites.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2>PDF Tools</h2>
+    <div class="tool-grid">
+      <a class="tool-card" href="{% url 'pdf_tools:sign_pdf' %}">
+        <h3>Sign PDF</h3>
+        <p>Draw or upload a signature, place it precisely, and download a signed file.</p>
+      </a>
+      <a class="tool-card" href="{% url 'pdf_tools:add_date' %}">
+        <h3>Add Date to PDF</h3>
+        <p>Click anywhere on a page to place current or custom date text.</p>
+      </a>
+      <a class="tool-card" href="{% url 'pdf_tools:index' %}">
+        <h3>More PDF Tools</h3>
+        <p>Explore document workflows and upcoming features like merge/split/reorder.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2>Image Tools</h2>
+    <div class="tool-grid">
+      <a class="tool-card" href="{% url 'image_tools:image_to_pdf' %}"><h3>Image to PDF</h3><p>Combine multiple images into one PDF.</p></a>
+      <a class="tool-card" href="{% url 'image_tools:resize_image' %}"><h3>Resize Image</h3><p>Set exact width/height for web, social, or print.</p></a>
+      <a class="tool-card" href="{% url 'image_tools:compress_image' %}"><h3>Compress Image</h3><p>Reduce file size while keeping quality controlled.</p></a>
+      <a class="tool-card" href="{% url 'image_tools:crop_image' %}"><h3>Crop Image</h3><p>Trim image bounds using pixel coordinates.</p></a>
+      <a class="tool-card" href="{% url 'image_tools:convert_image' %}"><h3>Convert Format</h3><p>Convert PNG, JPG, and WEBP files.</p></a>
+      <a class="tool-card" href="{% url 'image_tools:enhance_document' %}"><h3>Enhance Document</h3><p>Clean scanned photos for readability.</p></a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container content-section">
+    <h2>How It Works</h2>
+    <ol class="list-clean">
+      <li>Pick a PDF or image tool from the catalog.</li>
+      <li>Upload your file and apply edits in-browser.</li>
+      <li>Download the processed output in seconds.</li>
+    </ol>
+    <div class="row">
+      <a class="btn btn-sm" href="{% url 'pages:how_it_works' %}">Detailed Workflow</a>
+      <a class="btn btn-sm btn-secondary" href="{% url 'pages:privacy' %}">Privacy Details</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

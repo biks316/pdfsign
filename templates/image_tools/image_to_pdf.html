@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Image to PDF</h1><p>Upload one or more images and combine them into a PDF.</p></div></section>
+<section class="section"><div class="container form-wrap"><div class="card form-card">{% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Convert and Download</button></form></div><div><div class="content-section"><h2>Benefits</h2><ul class="list-clean"><li>Combine receipts, pages, or photos in one file.</li><li>Preserves image sequence based on upload order.</li></ul></div><div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div></div></div></section>
+{% endblock %}

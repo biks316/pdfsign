@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>PDF Tools</h1><p>Secure and fast browser-based tools for signing and date stamping PDFs.</p></div></section>
+<section class="section"><div class="container tool-grid">
+  <a class="tool-card" href="{% url 'pdf_tools:sign_pdf' %}"><h3>Sign PDF</h3><p>Draw or upload signature, place it precisely, and download.</p></a>
+  <a class="tool-card" href="{% url 'pdf_tools:add_date' %}"><h3>Add Date to PDF</h3><p>Stamp any page with current or custom date text.</p></a>
+  <a class="tool-card" href="{% url 'image_tools:image_to_pdf' %}"><h3>Image to PDF</h3><p>Need conversion first? Build a PDF from images.</p></a>
+</div></section>
+{% endblock %}

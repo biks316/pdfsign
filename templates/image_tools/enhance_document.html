@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Enhance Scanned Document</h1><p>Auto-contrast and sharpen document photos for improved readability.</p></div></section>
+<section class="section"><div class="container form-wrap"><div class="card form-card">{% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Enhance and Download</button></form></div><div><div class="content-section"><h2>What this tool does</h2><p>Converts to grayscale, improves contrast, sharpens text edges, and exports an optimized image.</p></div><div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div></div></div></section>
+{% endblock %}

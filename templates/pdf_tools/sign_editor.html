@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Place Signature</h1><p>Click on the PDF to add signature/date placements, then apply changes.</p></div></section>
+<section class="section">
+  <div class="container pdf-layout" data-sign-tool data-pdf-url="{{ pdf_url }}">
+    <div class="card form-card">
+      {% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}
+      <label>Draw signature</label>
+      <canvas id="signature-canvas" width="320" height="140"></canvas>
+      <label>Or upload signature image
+        <input type="file" id="signature-upload" accept="image/*">
+      </label>
+      <div class="row">
+        <button type="button" class="btn btn-sm btn-secondary" id="clear-signature">Clear Signature</button>
+        <button type="button" class="btn btn-sm btn-secondary" id="remove-last-placement">Remove Last Placement</button>
+      </div>
+      <form id="sign-form" method="post" class="mt-20">
+        {% csrf_token %}
+        <input type="hidden" id="placements-json" name="placements_json">
+        <label><input type="checkbox" id="include-signature" checked> Include signature</label>
+        <label><input type="checkbox" id="include-date"> Include current date</label>
+        <button class="btn" type="submit">Apply and Download Signed PDF</button>
+      </form>
+      <p class="helper" id="placement-status">Placements: 0</p>
+    </div>
+    <div class="card">
+      <h2>PDF Preview</h2>
+      <div id="pdf-pages" class="pdf-pages"></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}<script type="module" src="{% static 'js/sign_tool.js' %}"></script>{% endblock %}

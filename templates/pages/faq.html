@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Frequently Asked Questions</h1><p>Answers to common questions about PDF and image processing.</p></div></section>
+<section class="section"><div class="container content-section">
+  {% for item in faq_items %}
+    <h3>{{ item.question }}</h3>
+    <p>{{ item.answer }}</p>
+  {% endfor %}
+</div></section>
+{% endblock %}

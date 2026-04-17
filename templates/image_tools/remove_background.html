@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Remove Background</h1><p>Placeholder workflow with service abstraction so you can plug in a real provider later.</p></div></section>
+<section class="section"><div class="container form-wrap"><div class="card form-card">{% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Run Placeholder and Download</button></form>{% if placeholder_message %}<p class="helper">{{ placeholder_message }}</p>{% endif %}</div><div><div class="content-section"><h2>Service design</h2><p>The backend exposes a `BackgroundRemovalService` interface and `PlaceholderBackgroundRemovalService` implementation. Replace placeholder service with your provider SDK and keep view layer unchanged.</p></div><div class="content-section"><h2>Related tools</h2><p><a href="{% url 'image_tools:enhance_document' %}">Enhance Document</a></p><p><a href="{% url 'image_tools:convert_image' %}">Convert Image</a></p></div></div></div></section>
+{% endblock %}

@@ -1,64 +1,145 @@
-# PDF Signer (Django + pdf.js + PyMuPDF)
+# PDFSign Studio (Django Monolith)
 
-A simple server-rendered Django web app to upload a PDF, draw a signature, click to place items on a page, optionally add the current date, and download a signed PDF.
+Production-minded, SEO-friendly document and image tools platform built with Django templates, vanilla JS, pdf.js, PyMuPDF, and Pillow.
 
-## Features
+## Included Apps
 
-- Upload PDF file
-- Browser PDF preview using pdf.js
-- Draw signature on an HTML canvas
-- Click on pages multiple times to place one or more signatures
-- Choose to place signature, date, or both
-- Preview placement in the browser
-- Save and download signed PDF
+- `core`: homepage, robots.txt, global context, sitemap helpers
+- `accounts`: profile page and account area
+- `pdf_tools`: Sign PDF + Add Date to PDF
+- `image_tools`: image conversion and optimization tools
+- `pages`: About, FAQ, Privacy, Terms, Contact, How It Works
 
-## Tech Stack
+## Features Implemented
 
-- Django (server-rendered templates)
-- Vanilla JavaScript
-- pdf.js (CDN)
-- PyMuPDF (`fitz`)
+### PDF tools
+- Sign PDF (draw signature and/or upload signature image)
+- Place multiple signature/date overlays in preview
+- Add Date to PDF (click placement with optional custom text)
+- Preserves source content and overlays only stamped elements
 
-## Project Structure
+### Image tools
+- Image to PDF
+- Resize image
+- Compress image
+- Crop image
+- Convert PNG/JPG/WEBP
+- Enhance scanned document image
+- Remove background placeholder page + provider service abstraction
 
-- `pdfsign_project/` Django project settings and root URLs
-- `signer/` App with forms, views, URLs, templates, static files
-- `media/temp/` Uploaded PDFs
-- `media/signed/` Signed PDFs
+### SEO
+- Clean URLs (`/pdf-tools/...`, `/image-tools/...`, `/pages/...`)
+- Page-level title/meta description
+- Open Graph tags and canonical tags
+- FAQ schema on key pages
+- Website schema in base template
+- `sitemap.xml`
+- `robots.txt` with media temp/processed exclusions
+- Internal linking between related tools
 
-## Setup
+### Authentication
+- Email/password auth (django-allauth)
+- Google OAuth wiring (allauth Google provider)
+- Logout, password reset templates, account profile
+- Auth architecture ready to add Microsoft provider later
 
-1. Create and activate a virtualenv.
+## Quick Start
+
+1. Create and activate virtual environment.
 2. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Run migrations (safe even though this app does not require custom models):
+3. Set environment variables (see below).
+4. Run migrations:
 
 ```bash
 python manage.py migrate
 ```
 
-4. Start dev server:
+5. Start dev server:
 
 ```bash
 python manage.py runserver
 ```
 
-5. Open `http://127.0.0.1:8000/`
+6. Open `http://127.0.0.1:8000/`
 
-## Usage Flow
+## Environment Variables
 
-1. Upload a PDF.
-2. Draw signature in the signature canvas.
-3. Click anywhere on rendered PDF pages to add one or more placements.
-4. Choose **Include signature**, **Include current date**, or both.
-5. Click **Save and Download Signed PDF**.
+```bash
+DJANGO_SECRET_KEY=change-this
+DJANGO_DEBUG=true
+DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
+DJANGO_SITE_ID=1
+SITE_NAME=PDFSign Studio
+SITE_DOMAIN=http://127.0.0.1:8000
+TIME_ZONE=America/New_York
 
-## Notes
+# allauth behavior
+ACCOUNT_EMAIL_VERIFICATION=optional
 
-- This is intentionally minimal and does not include auth.
-- Signature placement uses relative coordinates from the browser preview.
-- Basic validation and error handling are included for file type and signing inputs.
+# Google OAuth
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_SECRET=
+```
+
+## Google OAuth Setup (django-allauth)
+
+1. Create OAuth credentials in Google Cloud Console.
+2. Add authorized redirect URI:
+   - `http://127.0.0.1:8000/accounts/google/login/callback/`
+3. In Django admin, create/update `Site` (`id=1`) with your domain.
+4. In Django admin -> Social Applications:
+   - Provider: Google
+   - Client ID / Secret from Google
+   - Attach site
+5. Use Login/Signup pages and click `Continue with Google`.
+
+## Production Notes
+
+- Set `DJANGO_DEBUG=false`
+- Configure `DJANGO_ALLOWED_HOSTS` and `SITE_DOMAIN`
+- Use persistent storage for media (`temp`, `signed`, `processed`)
+- Add scheduled cleanup for temporary/processed files
+- Move static/media to CDN/object storage for scale
+- Use Postgres instead of SQLite
+- Add Celery/RQ for heavier file tasks
+
+## URL Structure
+
+- `/` Home
+- `/pdf-tools/`
+- `/pdf-tools/sign-pdf/`
+- `/pdf-tools/add-date-to-pdf/`
+- `/image-tools/`
+- `/image-tools/image-to-pdf/`
+- `/image-tools/resize-image/`
+- `/image-tools/compress-image/`
+- `/image-tools/crop-image/`
+- `/image-tools/convert-image/`
+- `/image-tools/remove-background/`
+- `/image-tools/enhance-document/`
+- `/pages/about/`
+- `/pages/faq/`
+- `/pages/privacy/`
+- `/pages/terms/`
+- `/pages/contact/`
+- `/pages/how-it-works/`
+- `/account/profile/`
+- `/accounts/login/`, `/accounts/signup/`, OAuth routes
+
+## Next Feature Suggestions
+
+1. Merge PDF
+2. Split PDF
+3. Compress PDF
+4. Reorder PDF pages
+5. Saved signatures per user
+6. Workflow/send-to-sign features
+7. Background job queue for heavy tasks
+8. S3-compatible object storage
+9. Product analytics and event tracking
+10. Ad placement zones for monetization
