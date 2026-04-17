@@ -1,0 +1,41 @@
+{% extends 'signer/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="signing-layout" data-pdf-url="{{ pdf_url }}">
+  <div class="left-panel card">
+    <h2>Draw Signature</h2>
+    <p>Draw your signature, then click on any PDF page to place it.</p>
+
+    {% if error_message %}
+      <div class="alert">{{ error_message }}</div>
+    {% endif %}
+
+    <canvas id="signature-canvas" width="320" height="140"></canvas>
+    <div class="button-row">
+      <button type="button" id="clear-signature">Clear</button>
+      <button type="button" id="remove-last-placement" class="secondary">Remove Last Placement</button>
+    </div>
+
+    <form id="sign-form" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="placements_json" id="placements-json">
+      <label class="checkbox-row">
+        <input type="checkbox" name="add_date" id="add-date">
+        Add current date next to signature
+      </label>
+      <button type="submit" id="submit-sign">Save and Download Signed PDF</button>
+    </form>
+
+    <p class="muted" id="placement-status">Placement: not selected</p>
+  </div>
+
+  <div class="right-panel card">
+    <h2>PDF Preview</h2>
+    <div id="pdf-pages" class="pdf-pages"></div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<script type="module" src="{% static 'signer/js/sign_pdf.js' %}"></script>
+{% endblock %}

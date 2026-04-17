@@ -1,0 +1,162 @@
+:root {
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --line: #d6dbe8;
+  --text: #18202f;
+  --muted: #5a6478;
+  --accent: #1f5eff;
+  --accent-hover: #194ad0;
+  --danger-bg: #ffe8e8;
+  --danger-text: #9b1818;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 5% 0%, #e7edff 0, #f4f6fb 45%), var(--bg);
+}
+
+.site-header {
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.site-header h1 {
+  margin: 0;
+  padding: 1rem 0;
+  font-size: 1.25rem;
+}
+
+.site-header a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.container {
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 8px 30px rgba(20, 27, 45, 0.05);
+}
+
+.form-stack p {
+  margin: 0 0 0.85rem;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.6rem 0.95rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-hover);
+}
+
+.alert {
+  margin: 0.75rem 0;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid #ffc3c3;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+}
+
+.signing-layout {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+  grid-template-columns: 320px 1fr;
+  margin: 1rem 0 2rem;
+}
+
+#signature-canvas {
+  border: 2px dashed var(--line);
+  border-radius: 8px;
+  width: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.checkbox-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+button.secondary {
+  background: #5f6b85;
+}
+
+button.secondary:hover {
+  background: #4f5a71;
+}
+
+.pdf-pages {
+  max-height: 78vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #eef1f7;
+  padding: 0.75rem;
+}
+
+.pdf-page {
+  margin: 0 0 1rem;
+  position: relative;
+}
+
+.pdf-page:last-child {
+  margin-bottom: 0;
+}
+
+.pdf-canvas {
+  display: block;
+  width: 100%;
+  border: 1px solid #a8b1c7;
+  background: #fff;
+  cursor: crosshair;
+}
+
+.sig-preview {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.9;
+  display: none;
+  border: 1px solid rgba(31, 94, 255, 0.55);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+@media (max-width: 980px) {
+  .signing-layout {
+    grid-template-columns: 1fr;
+  }
+}
