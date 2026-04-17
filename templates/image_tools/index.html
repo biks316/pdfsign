@@ -2,12 +2,47 @@
 {% block content %}
 <section class="page-hero"><div class="container"><h1>Image Tools</h1><p>Convert, resize, crop, compress, and optimize images in a single workflow hub.</p></div></section>
 <section class="section"><div class="container tool-grid">
-  <a class="tool-card" href="{% url 'image_tools:image_to_pdf' %}"><h3>Image to PDF</h3><p>Build one PDF from multiple images.</p></a>
-  <a class="tool-card" href="{% url 'image_tools:resize_image' %}"><h3>Resize Image</h3><p>Set exact output dimensions.</p></a>
-  <a class="tool-card" href="{% url 'image_tools:compress_image' %}"><h3>Compress Image</h3><p>Reduce file size for web upload.</p></a>
-  <a class="tool-card" href="{% url 'image_tools:crop_image' %}"><h3>Crop Image</h3><p>Trim to exact area.</p></a>
-  <a class="tool-card" href="{% url 'image_tools:convert_image' %}"><h3>Convert Image</h3><p>PNG, JPG, WEBP conversion.</p></a>
-  <a class="tool-card" href="{% url 'image_tools:enhance_document' %}"><h3>Enhance Document</h3><p>Clean scanned photos.</p></a>
-  <a class="tool-card" href="{% url 'image_tools:remove_background' %}"><h3>Remove Background</h3><p>Placeholder service design for future provider.</p></a>
+  <a class="tool-card" href="{% url 'image_tools:image_to_pdf' %}">
+    <span class="tool-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="4" y="4" width="10" height="14" rx="2"/><path d="M14 10h6M17 7l3 3-3 3"/><path d="M7 14l2-2 2 2 2-3"/></svg>
+    </span>
+    <h3>Image to PDF</h3><p>Build one PDF from multiple images.</p>
+  </a>
+  <a class="tool-card" href="{% url 'image_tools:resize_image' %}">
+    <span class="tool-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><rect x="8" y="8" width="8" height="8" rx="1.5"/></svg>
+    </span>
+    <h3>Resize Image</h3><p>Set exact output dimensions.</p>
+  </a>
+  <a class="tool-card" href="{% url 'image_tools:compress_image' %}">
+    <span class="tool-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/><path d="M14 5h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4"/><path d="M9 12h6"/><path d="M12 9l3 3-3 3"/></svg>
+    </span>
+    <h3>Compress Image</h3><p>Reduce file size for web upload.</p>
+  </a>
+  <a class="tool-card" href="{% url 'image_tools:crop_image' %}">
+    <span class="tool-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M6 3v13a2 2 0 0 0 2 2h13"/><path d="M3 6h13a2 2 0 0 1 2 2v13"/><rect x="9" y="9" width="8" height="8" rx="1.5"/></svg>
+    </span>
+    <h3>Crop Image</h3><p>Trim to exact area.</p>
+  </a>
+  <a class="tool-card" href="{% url 'image_tools:convert_image' %}">
+    <span class="tool-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M7 7h6a2 2 0 0 1 2 2v6"/><path d="M17 17h-6a2 2 0 0 1-2-2V9"/><path d="M5 5l4 4M19 19l-4-4"/></svg>
+    </span>
+    <h3>Convert Image</h3><p>PNG, JPG, WEBP conversion.</p>
+  </a>
+  <a class="tool-card" href="{% url 'image_tools:enhance_document' %}">
+    <span class="tool-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 3l1.9 3.8 4.1.6-3 2.9.7 4.1-3.7-2-3.7 2 .7-4.1-3-2.9 4.1-.6z"/><path d="M4 20h16"/></svg>
+    </span>
+    <h3>Enhance Document</h3><p>Clean scanned photos.</p>
+  </a>
+  <a class="tool-card" href="{% url 'image_tools:remove_background' %}">
+    <span class="tool-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M8 7v11a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V7"/><path d="M9 7l1-3h4l1 3"/><path d="M9 12h6"/></svg>
+    </span>
+    <h3>Remove Background</h3><p>Placeholder service design for future provider.</p>
+  </a>
 </div></section>
 {% endblock %}

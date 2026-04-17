@@ -13,6 +13,40 @@
     </div>
     <div class="hero-card">
       <h2>Why teams choose PDFSign Studio</h2>
+      <div class="hero-graphic" aria-hidden="true">
+        <svg class="workflow-svg" viewBox="0 0 560 260" role="img">
+          <defs>
+            <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#1766ff" />
+              <stop offset="100%" stop-color="#19b7a7" />
+            </linearGradient>
+          </defs>
+
+          <rect x="28" y="82" rx="18" ry="18" width="146" height="96" class="svg-node" />
+          <text x="66" y="120" class="svg-title">PDF</text>
+          <text x="66" y="143" class="svg-sub">Upload</text>
+
+          <path d="M173 130 H236" class="flow-line flow-line-1" />
+          <path d="M327 130 H391" class="flow-line flow-line-2" />
+
+          <rect x="236" y="72" rx="18" ry="18" width="92" height="116" class="svg-node svg-node-accent" />
+          <text x="251" y="120" class="svg-title">Sign</text>
+          <text x="252" y="143" class="svg-sub">or Date</text>
+
+          <rect x="391" y="82" rx="18" ry="18" width="146" height="96" class="svg-node" />
+          <text x="429" y="120" class="svg-title">Secure</text>
+          <text x="429" y="143" class="svg-sub">Download</text>
+
+          <g class="float-badge badge-check">
+            <circle cx="280" cy="40" r="18" fill="#e7fff9" stroke="#8de1d5" />
+            <path d="M272 40 L279 47 L291 34" class="badge-path" />
+          </g>
+          <g class="float-badge badge-shield">
+            <circle cx="524" cy="54" r="15" fill="#edf3ff" stroke="#98b5ef" />
+            <path d="M524 46 L530 49 V55 C530 59 527 62 524 63 C521 62 518 59 518 55 V49 Z" class="badge-path" />
+          </g>
+        </svg>
+      </div>
       <ul class="list-clean">
         {% for item in trust_items %}
           <li>{{ item }}</li>
@@ -28,14 +62,23 @@
     <h2>PDF Tools</h2>
     <div class="tool-grid">
       <a class="tool-card" href="{% url 'pdf_tools:sign_pdf' %}">
+        <span class="tool-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M7 16l7.8-7.8a2.1 2.1 0 0 1 3 0l.1.1a2.1 2.1 0 0 1 0 3L10 19H7z"/><path d="M14 9l3 3"/></svg>
+        </span>
         <h3>Sign PDF</h3>
         <p>Draw or upload a signature, place it precisely, and download a signed file.</p>
       </a>
       <a class="tool-card" href="{% url 'pdf_tools:add_date' %}">
+        <span class="tool-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 14h4M8 17h8"/></svg>
+        </span>
         <h3>Add Date to PDF</h3>
         <p>Click anywhere on a page to place current or custom date text.</p>
       </a>
       <a class="tool-card" href="{% url 'pdf_tools:index' %}">
+        <span class="tool-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 4h10l4 4v12H5z"/><path d="M15 4v4h4"/><path d="M8 13h8M8 17h6"/></svg>
+        </span>
         <h3>More PDF Tools</h3>
         <p>Explore document workflows and upcoming features like merge/split/reorder.</p>
       </a>
@@ -47,12 +90,42 @@
   <div class="container">
     <h2>Image Tools</h2>
     <div class="tool-grid">
-      <a class="tool-card" href="{% url 'image_tools:image_to_pdf' %}"><h3>Image to PDF</h3><p>Combine multiple images into one PDF.</p></a>
-      <a class="tool-card" href="{% url 'image_tools:resize_image' %}"><h3>Resize Image</h3><p>Set exact width/height for web, social, or print.</p></a>
-      <a class="tool-card" href="{% url 'image_tools:compress_image' %}"><h3>Compress Image</h3><p>Reduce file size while keeping quality controlled.</p></a>
-      <a class="tool-card" href="{% url 'image_tools:crop_image' %}"><h3>Crop Image</h3><p>Trim image bounds using pixel coordinates.</p></a>
-      <a class="tool-card" href="{% url 'image_tools:convert_image' %}"><h3>Convert Format</h3><p>Convert PNG, JPG, and WEBP files.</p></a>
-      <a class="tool-card" href="{% url 'image_tools:enhance_document' %}"><h3>Enhance Document</h3><p>Clean scanned photos for readability.</p></a>
+      <a class="tool-card" href="{% url 'image_tools:image_to_pdf' %}">
+        <span class="tool-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="4" y="4" width="10" height="14" rx="2"/><path d="M14 10h6M17 7l3 3-3 3"/><path d="M7 14l2-2 2 2 2-3"/></svg>
+        </span>
+        <h3>Image to PDF</h3><p>Combine multiple images into one PDF.</p>
+      </a>
+      <a class="tool-card" href="{% url 'image_tools:resize_image' %}">
+        <span class="tool-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><rect x="8" y="8" width="8" height="8" rx="1.5"/></svg>
+        </span>
+        <h3>Resize Image</h3><p>Set exact width/height for web, social, or print.</p>
+      </a>
+      <a class="tool-card" href="{% url 'image_tools:compress_image' %}">
+        <span class="tool-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/><path d="M14 5h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4"/><path d="M9 12h6"/><path d="M12 9l3 3-3 3"/></svg>
+        </span>
+        <h3>Compress Image</h3><p>Reduce file size while keeping quality controlled.</p>
+      </a>
+      <a class="tool-card" href="{% url 'image_tools:crop_image' %}">
+        <span class="tool-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M6 3v13a2 2 0 0 0 2 2h13"/><path d="M3 6h13a2 2 0 0 1 2 2v13"/><rect x="9" y="9" width="8" height="8" rx="1.5"/></svg>
+        </span>
+        <h3>Crop Image</h3><p>Trim image bounds using pixel coordinates.</p>
+      </a>
+      <a class="tool-card" href="{% url 'image_tools:convert_image' %}">
+        <span class="tool-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M7 7h6a2 2 0 0 1 2 2v6"/><path d="M17 17h-6a2 2 0 0 1-2-2V9"/><path d="M5 5l4 4M19 19l-4-4"/></svg>
+        </span>
+        <h3>Convert Format</h3><p>Convert PNG, JPG, and WEBP files.</p>
+      </a>
+      <a class="tool-card" href="{% url 'image_tools:enhance_document' %}">
+        <span class="tool-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 3l1.9 3.8 4.1.6-3 2.9.7 4.1-3.7-2-3.7 2 .7-4.1-3-2.9 4.1-.6z"/><path d="M4 20h16"/></svg>
+        </span>
+        <h3>Enhance Document</h3><p>Clean scanned photos for readability.</p>
+      </a>
     </div>
   </div>
 </section>

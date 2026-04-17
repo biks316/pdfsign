@@ -117,6 +117,83 @@ a { color: inherit; text-decoration: none; }
 
 .hero-actions { display: flex; gap: 0.8rem; margin-top: 1.2rem; flex-wrap: wrap; }
 
+.hero-graphic {
+  margin: 0.6rem 0 0.5rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, #f6f9ff 0%, #eef8ff 60%, #f7fffd 100%);
+  padding: 0.45rem;
+}
+
+.workflow-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.svg-node {
+  fill: #ffffff;
+  stroke: #acc1ec;
+  stroke-width: 1.6;
+  filter: drop-shadow(0 5px 14px rgba(14, 34, 77, 0.07));
+}
+
+.svg-node-accent {
+  stroke: #89cfca;
+  fill: #f4fffd;
+}
+
+.svg-title {
+  fill: #15233a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.svg-sub {
+  fill: #607089;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.flow-line {
+  stroke: url(#flowGrad);
+  stroke-width: 4;
+  stroke-linecap: round;
+  fill: none;
+  stroke-dasharray: 10 12;
+  animation: flowSlide 2.2s linear infinite;
+}
+
+.flow-line-2 {
+  animation-duration: 2.8s;
+}
+
+.float-badge {
+  transform-origin: center;
+  animation: floatBadge 3s ease-in-out infinite;
+}
+
+.badge-shield {
+  animation-delay: 0.4s;
+}
+
+.badge-path {
+  fill: none;
+  stroke: #1766ff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hero-graphic:hover .flow-line {
+  animation-duration: 1.2s;
+}
+
+.hero-graphic:hover .svg-node {
+  transform-origin: center;
+  animation: nodePop 320ms ease-out forwards;
+}
+
 .tool-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -130,6 +207,28 @@ a { color: inherit; text-decoration: none; }
   background: #fff;
   padding: 1rem;
   min-height: 164px;
+}
+
+.tool-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eaf1ff 0%, #f2f8ff 100%);
+  border: 1px solid #d5e3ff;
+}
+
+.tool-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--brand);
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .tool-card h3 { margin: 0 0 0.5rem; font-size: 1.06rem; }
@@ -276,6 +375,21 @@ a { color: inherit; text-decoration: none; }
 
 .mt-20 { margin-top: 20px; }
 .row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+@keyframes flowSlide {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -44; }
+}
+
+@keyframes floatBadge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes nodePop {
+  from { transform: scale(1); }
+  to { transform: scale(1.02); }
+}
 
 @media (max-width: 1020px) {
   .hero-grid,
