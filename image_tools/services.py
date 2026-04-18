@@ -101,12 +101,25 @@ def convert_image(uploaded_file, target_format: str) -> Path:
     return _save_output(converted, extension=extension, image_format=image_format)
 
 
-def enhance_document(uploaded_file) -> Path:
-    image = _open_image(uploaded_file)
+def _enhance_document_image(image: Image.Image) -> Image.Image:
     grayscale = ImageOps.grayscale(image)
     contrast = ImageOps.autocontrast(grayscale)
     sharpened = ImageEnhance.Sharpness(contrast).enhance(2.0)
-    cleaned = ImageOps.posterize(sharpened.convert('RGB'), bits=4)
+    return ImageOps.posterize(sharpened.convert('RGB'), bits=4)
+
+
+def create_enhancement_preview(uploaded_file) -> tuple[Path, Path]:
+    image = _open_image(uploaded_file)
+    original = image.convert('RGB')
+    enhanced = _enhance_document_image(image)
+    original_path = _save_output(original, extension='jpg', image_format='JPEG', quality=92, optimize=True)
+    enhanced_path = _save_output(enhanced, extension='jpg', image_format='JPEG', quality=90, optimize=True)
+    return original_path, enhanced_path
+
+
+def enhance_document(uploaded_file) -> Path:
+    image = _open_image(uploaded_file)
+    cleaned = _enhance_document_image(image)
     return _save_output(cleaned, extension='jpg', image_format='JPEG', quality=90, optimize=True)
 
 

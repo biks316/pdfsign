@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.http import FileResponse
 from django.shortcuts import render
+from pathlib import Path
 
 from .forms import (
     CompressImageForm,
@@ -13,8 +15,8 @@ from .services import (
     ImageToolError,
     compress_image,
     convert_image,
+    create_enhancement_preview,
     crop_image,
-    enhance_document,
     image_to_pdf,
     remove_background_placeholder,
     resize_image,
@@ -44,6 +46,17 @@ def index_view(request):
 
 def _serve_download(path, filename):
     return FileResponse(path.open('rb'), as_attachment=True, filename=filename)
+
+
+def _load_processed_file(name: str) -> Path:
+    raw_name = (name or '').strip()
+    safe_name = Path(raw_name).name
+    if not raw_name or safe_name != raw_name:
+        raise ImageToolError('Invalid download token.')
+    file_path = settings.MEDIA_PROCESSED_ROOT / safe_name
+    if not file_path.exists() or not file_path.is_file():
+        raise ImageToolError('Preview expired. Please upload again.')
+    return file_path
 
 
 def image_to_pdf_view(request):
@@ -118,7 +131,7 @@ def crop_image_view(request):
     return render(request, 'image_tools/crop_image.html', {
         'form': form,
         'page_title': 'Crop Image Online',
-        'meta_description': 'Crop photos and screenshots precisely with pixel-based controls.',
+        'meta_description': 'Crop photos and screenshots with a mouse-driven selection box.',
         'canonical_path': '/image-tools/crop-image/',
         'related_tools': RELATED_IMAGE_TOOLS,
     })
@@ -167,15 +180,34 @@ def remove_background_view(request):
 
 def enhance_document_view(request):
     form = SimpleImageUploadForm(request.POST or None, request.FILES or None)
+    preview_original_url = None
+    preview_enhanced_url = None
+    enhanced_name = None
+    action = request.POST.get('action')
     if request.method == 'POST' and form.is_valid():
         try:
-            output_path = enhance_document(form.cleaned_data['image'])
+            if action == 'download':
+                enhanced_name = request.POST.get('enhanced_name', '')
+                output_path = _load_processed_file(enhanced_name)
+                return _serve_download(output_path, 'enhanced-document.jpg')
+            original_path, enhanced_path = create_enhancement_preview(form.cleaned_data['image'])
+            preview_original_url = f"{settings.MEDIA_URL}processed/{original_path.name}"
+            preview_enhanced_url = f"{settings.MEDIA_URL}processed/{enhanced_path.name}"
+            enhanced_name = enhanced_path.name
         except ImageToolError as exc:
             return render(request, 'image_tools/enhance_document.html', {'form': form, 'error_message': str(exc)})
+    elif request.method == 'POST' and action == 'download':
+        try:
+            output_path = _load_processed_file(request.POST.get('enhanced_name', ''))
+        except ImageToolError as exc:
+            return render(request, 'image_tools/enhance_document.html', {'form': SimpleImageUploadForm(), 'error_message': str(exc)})
         return _serve_download(output_path, 'enhanced-document.jpg')
 
     return render(request, 'image_tools/enhance_document.html', {
         'form': form,
+        'preview_original_url': preview_original_url,
+        'preview_enhanced_url': preview_enhanced_url,
+        'enhanced_name': enhanced_name,
         'page_title': 'Enhance Scanned Document',
         'meta_description': 'Clean and sharpen document photos for better readability and sharing.',
         'canonical_path': '/image-tools/enhance-document/',

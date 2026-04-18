@@ -1,5 +1,206 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="page-hero"><div class="container"><h1>Crop Image</h1><p>Crop by entering pixel boundaries.</p></div></section>
-<section class="section"><div class="container form-wrap"><div class="card form-card">{% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Crop and Download</button></form></div><div><div class="content-section"><h2>How to use</h2><ol class="list-clean"><li>Upload an image.</li><li>Set left/top/right/bottom pixel positions.</li><li>Download cropped output.</li></ol></div><div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div></div></div></section>
+<section class="page-hero"><div class="container"><h1>Crop Image</h1><p>Select crop area with your mouse, resize it, then crop.</p></div></section>
+<section class="section"><div class="container form-wrap"><div class="card form-card">{% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}<form method="post" enctype="multipart/form-data" id="crop-form">{% csrf_token %}
+<label for="{{ form.image.id_for_label }}">Image</label>{{ form.image }}
+{% if form.image.errors %}{{ form.image.errors }}{% endif %}
+<input type="hidden" name="left" id="id_left" value="{{ form.left.value|default:0 }}">
+<input type="hidden" name="top" id="id_top" value="{{ form.top.value|default:0 }}">
+<input type="hidden" name="right" id="id_right" value="{{ form.right.value|default:0 }}">
+<input type="hidden" name="bottom" id="id_bottom" value="{{ form.bottom.value|default:0 }}">
+<p class="helper" id="crop-status">Upload an image, draw a square, and resize/move it as needed.</p>
+<button class="btn" type="submit">Crop and Download</button></form></div><div><div class="content-section"><h2>Crop Area</h2><div class="crop-stage-wrap"><div id="crop-stage" class="crop-stage"><img id="crop-image" class="crop-image" alt="Crop preview"><div id="crop-box" class="crop-box" hidden><button type="button" class="crop-handle crop-handle-nw" data-handle="nw"></button><button type="button" class="crop-handle crop-handle-ne" data-handle="ne"></button><button type="button" class="crop-handle crop-handle-sw" data-handle="sw"></button><button type="button" class="crop-handle crop-handle-se" data-handle="se"></button></div></div></div></div><div class="content-section"><h2>How to use</h2><ol class="list-clean"><li>Upload an image file.</li><li>Click and drag to create crop area.</li><li>Drag inside box to move, drag corners to resize.</li><li>Click Crop and Download.</li></ol></div><div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div></div></div></section>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+(() => {
+  const fileInput = document.getElementById('{{ form.image.id_for_label }}');
+  const form = document.getElementById('crop-form');
+  const stage = document.getElementById('crop-stage');
+  const img = document.getElementById('crop-image');
+  const box = document.getElementById('crop-box');
+  const status = document.getElementById('crop-status');
+  const fields = {
+    left: document.getElementById('id_left'),
+    top: document.getElementById('id_top'),
+    right: document.getElementById('id_right'),
+    bottom: document.getElementById('id_bottom'),
+  };
+
+  const state = {
+    imageReady: false,
+    imageScaleX: 1,
+    imageScaleY: 1,
+    dragMode: null,
+    handle: null,
+    startX: 0,
+    startY: 0,
+    rectStart: null,
+    rect: null,
+  };
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function pointerPos(evt) {
+    const bounds = stage.getBoundingClientRect();
+    return {
+      x: clamp(evt.clientX - bounds.left, 0, bounds.width),
+      y: clamp(evt.clientY - bounds.top, 0, bounds.height),
+      width: bounds.width,
+      height: bounds.height,
+    };
+  }
+
+  function drawRect() {
+    if (!state.rect) {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    box.style.left = `${state.rect.x}px`;
+    box.style.top = `${state.rect.y}px`;
+    box.style.width = `${state.rect.w}px`;
+    box.style.height = `${state.rect.h}px`;
+    fields.left.value = Math.round(state.rect.x * state.imageScaleX);
+    fields.top.value = Math.round(state.rect.y * state.imageScaleY);
+    fields.right.value = Math.round((state.rect.x + state.rect.w) * state.imageScaleX);
+    fields.bottom.value = Math.round((state.rect.y + state.rect.h) * state.imageScaleY);
+    status.textContent = `Crop: ${Math.round(state.rect.w * state.imageScaleX)} x ${Math.round(state.rect.h * state.imageScaleY)} px`;
+  }
+
+  function beginDrag(evt, mode, handle) {
+    if (!state.imageReady) {
+      return;
+    }
+    evt.preventDefault();
+    const pos = pointerPos(evt);
+    state.dragMode = mode;
+    state.handle = handle || null;
+    state.startX = pos.x;
+    state.startY = pos.y;
+    state.rectStart = state.rect ? {...state.rect} : null;
+    if (mode === 'draw') {
+      state.rect = {x: pos.x, y: pos.y, w: 0, h: 0};
+      drawRect();
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', endDrag);
+  }
+
+  function onMove(evt) {
+    if (!state.dragMode) {
+      return;
+    }
+    const pos = pointerPos(evt);
+    const minSize = 16;
+    if (state.dragMode === 'draw') {
+      const x = Math.min(state.startX, pos.x);
+      const y = Math.min(state.startY, pos.y);
+      const size = Math.max(minSize, Math.min(Math.abs(pos.x - state.startX), Math.abs(pos.y - state.startY)));
+      const maxSize = Math.min(stage.clientWidth - x, stage.clientHeight - y);
+      const finalSize = Math.min(size, maxSize);
+      state.rect = {x, y, w: finalSize, h: finalSize};
+      drawRect();
+      return;
+    }
+    if (!state.rectStart) {
+      return;
+    }
+    if (state.dragMode === 'move') {
+      const nextX = clamp(state.rectStart.x + (pos.x - state.startX), 0, stage.clientWidth - state.rectStart.w);
+      const nextY = clamp(state.rectStart.y + (pos.y - state.startY), 0, stage.clientHeight - state.rectStart.h);
+      state.rect = {x: nextX, y: nextY, w: state.rectStart.w, h: state.rectStart.h};
+      drawRect();
+      return;
+    }
+    if (state.dragMode === 'resize') {
+      const left = state.rectStart.x;
+      const top = state.rectStart.y;
+      const right = state.rectStart.x + state.rectStart.w;
+      const bottom = state.rectStart.y + state.rectStart.h;
+      let maxSize;
+      let size;
+      let x = left;
+      let y = top;
+      if (state.handle === 'se') {
+        maxSize = Math.min(stage.clientWidth - left, stage.clientHeight - top);
+        size = clamp(Math.min(pos.x - left, pos.y - top), minSize, maxSize);
+      } else if (state.handle === 'nw') {
+        maxSize = Math.min(right, bottom);
+        size = clamp(Math.min(right - pos.x, bottom - pos.y), minSize, maxSize);
+        x = right - size;
+        y = bottom - size;
+      } else if (state.handle === 'ne') {
+        maxSize = Math.min(stage.clientWidth - left, bottom);
+        size = clamp(Math.min(pos.x - left, bottom - pos.y), minSize, maxSize);
+        y = bottom - size;
+      } else {
+        maxSize = Math.min(right, stage.clientHeight - top);
+        size = clamp(Math.min(right - pos.x, pos.y - top), minSize, maxSize);
+        x = right - size;
+      }
+      state.rect = {x, y, w: size, h: size};
+      drawRect();
+    }
+  }
+
+  function endDrag() {
+    state.dragMode = null;
+    state.handle = null;
+    state.rectStart = null;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', endDrag);
+  }
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.src = reader.result;
+      img.onload = () => {
+        state.imageReady = true;
+        const naturalW = img.naturalWidth || 1;
+        const naturalH = img.naturalHeight || 1;
+        state.imageScaleX = naturalW / img.clientWidth;
+        state.imageScaleY = naturalH / img.clientHeight;
+        const defaultSize = Math.min(img.clientWidth, img.clientHeight) * 0.55;
+        state.rect = {
+          x: (img.clientWidth - defaultSize) / 2,
+          y: (img.clientHeight - defaultSize) / 2,
+          w: defaultSize,
+          h: defaultSize,
+        };
+        drawRect();
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+
+  stage.addEventListener('pointerdown', (evt) => {
+    if (evt.target.closest('.crop-handle')) {
+      beginDrag(evt, 'resize', evt.target.dataset.handle);
+      return;
+    }
+    if (evt.target === box || evt.target.closest('#crop-box')) {
+      beginDrag(evt, 'move');
+      return;
+    }
+    if (evt.target === img || evt.target === stage) {
+      beginDrag(evt, 'draw');
+    }
+  });
+
+  form.addEventListener('submit', (evt) => {
+    if (!state.rect || !state.imageReady) {
+      evt.preventDefault();
+      status.textContent = 'Please upload an image and create a crop area first.';
+    }
+  });
+})();
+</script>
 {% endblock %}
