@@ -8,18 +8,19 @@ from .forms import (
     ConvertImageForm,
     CropImageForm,
     ImageToPDFForm,
-    ResizeImageForm,
     SimpleImageUploadForm,
 )
 from .services import (
     ImageToolError,
     compress_image,
     convert_image,
+    create_crop_preview,
+    create_resize_preview,
     create_enhancement_preview,
-    crop_image,
+    crop_image_from_path,
     image_to_pdf,
     remove_background_placeholder,
-    resize_image,
+    resize_image_from_path,
 )
 
 
@@ -78,16 +79,136 @@ def image_to_pdf_view(request):
 
 
 def resize_image_view(request):
-    form = ResizeImageForm(request.POST or None, request.FILES or None)
-    if request.method == 'POST' and form.is_valid():
+    form = SimpleImageUploadForm()
+    form.fields['image'].required = False
+    preview_original_url = None
+    preview_resized_url = None
+    original_name = None
+    resized_name = None
+    selected_width = None
+    selected_height = None
+    action = request.POST.get('action')
+    raw_left = (request.POST.get('left') or '').strip()
+    raw_top = (request.POST.get('top') or '').strip()
+    raw_right = (request.POST.get('right') or '').strip()
+    raw_bottom = (request.POST.get('bottom') or '').strip()
+
+    if request.method == 'POST' and action == 'download':
         try:
-            output_path = resize_image(form.cleaned_data['image'], form.cleaned_data['width'], form.cleaned_data['height'])
+            raw_width = (request.POST.get('width') or '').strip()
+            raw_height = (request.POST.get('height') or '').strip()
+            original_name = (request.POST.get('original_name') or '').strip()
+            if raw_left and raw_top and raw_right and raw_bottom and original_name:
+                left = int(raw_left)
+                top = int(raw_top)
+                right = int(raw_right)
+                bottom = int(raw_bottom)
+                source_path = _load_processed_file(original_name)
+                output_path = crop_image_from_path(source_path, left, top, right, bottom)
+            elif raw_width and raw_height and original_name:
+                width = int(raw_width)
+                height = int(raw_height)
+                if not (16 <= width <= 6000 and 16 <= height <= 6000):
+                    raise ImageToolError('Width and height must be between 16 and 6000 pixels.')
+                source_path = _load_processed_file(original_name)
+                output_path = resize_image_from_path(source_path, width, height)
+            else:
+                output_path = _load_processed_file(request.POST.get('resized_name', ''))
         except ImageToolError as exc:
             return render(request, 'image_tools/resize_image.html', {'form': form, 'error_message': str(exc)})
-        return _serve_download(output_path, 'resized-image.jpg')
+        except (TypeError, ValueError):
+            return render(request, 'image_tools/resize_image.html', {'form': form, 'error_message': 'Choose a valid resize area first.'})
+        extension = output_path.suffix.lower() or '.jpg'
+        return _serve_download(output_path, f'resized-image{extension}')
+
+    if request.method == 'POST':
+        image = request.FILES.get('image')
+        raw_width = (request.POST.get('width') or '').strip()
+        raw_height = (request.POST.get('height') or '').strip()
+        original_name = (request.POST.get('original_name') or '').strip()
+        selected_width = raw_width
+        selected_height = raw_height
+
+        try:
+            width = int(raw_width)
+            height = int(raw_height)
+        except (TypeError, ValueError):
+            return render(
+                request,
+                'image_tools/resize_image.html',
+                {
+                    'form': form,
+                    'error_message': 'Choose the resize area to set width and height first.',
+                    'selected_width': selected_width,
+                    'selected_height': selected_height,
+                },
+            )
+
+        if not (16 <= width <= 6000 and 16 <= height <= 6000):
+            return render(
+                request,
+                'image_tools/resize_image.html',
+                {
+                    'form': form,
+                    'error_message': 'Width and height must be between 16 and 6000 pixels.',
+                    'selected_width': selected_width,
+                    'selected_height': selected_height,
+                },
+            )
+
+        try:
+            if image:
+                form = SimpleImageUploadForm(request.POST, request.FILES)
+                form.fields['image'].required = False
+                if not form.is_valid():
+                    return render(
+                        request,
+                        'image_tools/resize_image.html',
+                        {
+                            'form': form,
+                            'selected_width': selected_width,
+                            'selected_height': selected_height,
+                        },
+                    )
+                if raw_left and raw_top and raw_right and raw_bottom:
+                    left = int(raw_left)
+                    top = int(raw_top)
+                    right = int(raw_right)
+                    bottom = int(raw_bottom)
+                    output_original_path, output_resized_path = create_crop_preview(
+                        form.cleaned_data['image'], left, top, right, bottom
+                    )
+                else:
+                    output_original_path, output_resized_path = create_resize_preview(
+                        form.cleaned_data['image'], width, height
+                    )
+            else:
+                if not original_name:
+                    raise ImageToolError('Upload an image first.')
+                output_original_path = _load_processed_file(original_name)
+                if raw_left and raw_top and raw_right and raw_bottom:
+                    left = int(raw_left)
+                    top = int(raw_top)
+                    right = int(raw_right)
+                    bottom = int(raw_bottom)
+                    output_resized_path = crop_image_from_path(output_original_path, left, top, right, bottom)
+                else:
+                    output_resized_path = resize_image_from_path(output_original_path, width, height)
+            preview_original_url = f"{settings.MEDIA_URL}processed/{output_original_path.name}"
+            preview_resized_url = f"{settings.MEDIA_URL}processed/{output_resized_path.name}"
+            original_name = output_original_path.name
+            resized_name = output_resized_path.name
+        except ImageToolError as exc:
+            return render(request, 'image_tools/resize_image.html', {'form': form, 'error_message': str(exc)})
 
     return render(request, 'image_tools/resize_image.html', {
         'form': form,
+        'preview_original_url': preview_original_url,
+        'preview_resized_url': preview_resized_url,
+        'original_name': original_name,
+        'resized_name': resized_name,
+        'selected_width': selected_width,
+        'selected_height': selected_height,
         'page_title': 'Resize Image Online',
         'meta_description': 'Resize PNG, JPG, or WEBP images to exact dimensions without extra software.',
         'canonical_path': '/image-tools/resize-image/',
@@ -114,22 +235,116 @@ def compress_image_view(request):
 
 
 def crop_image_view(request):
-    form = CropImageForm(request.POST or None, request.FILES or None)
-    if request.method == 'POST' and form.is_valid():
+    form = CropImageForm()
+    form.fields['image'].required = False
+    preview_original_url = None
+    preview_cropped_url = None
+    original_name = None
+    cropped_name = None
+    selected_left = None
+    selected_top = None
+    selected_right = None
+    selected_bottom = None
+    action = request.POST.get('action')
+
+    if request.method == 'POST' and action == 'download':
         try:
-            output_path = crop_image(
-                form.cleaned_data['image'],
-                form.cleaned_data['left'],
-                form.cleaned_data['top'],
-                form.cleaned_data['right'],
-                form.cleaned_data['bottom'],
-            )
+            output_path = _load_processed_file(request.POST.get('cropped_name', ''))
         except ImageToolError as exc:
             return render(request, 'image_tools/crop_image.html', {'form': form, 'error_message': str(exc)})
-        return _serve_download(output_path, 'cropped-image.jpg')
+        extension = output_path.suffix.lower() or '.jpg'
+        return _serve_download(output_path, f'cropped-image{extension}')
+
+    if request.method == 'POST':
+        image = request.FILES.get('image')
+        original_name = (request.POST.get('original_name') or '').strip()
+        raw_left = (request.POST.get('left') or '').strip()
+        raw_top = (request.POST.get('top') or '').strip()
+        raw_right = (request.POST.get('right') or '').strip()
+        raw_bottom = (request.POST.get('bottom') or '').strip()
+        selected_left = raw_left
+        selected_top = raw_top
+        selected_right = raw_right
+        selected_bottom = raw_bottom
+
+        try:
+            left = int(raw_left)
+            top = int(raw_top)
+            right = int(raw_right)
+            bottom = int(raw_bottom)
+        except (TypeError, ValueError):
+            return render(
+                request,
+                'image_tools/crop_image.html',
+                {
+                    'form': form,
+                    'error_message': 'Select a square crop area first.',
+                    'selected_left': selected_left,
+                    'selected_top': selected_top,
+                    'selected_right': selected_right,
+                    'selected_bottom': selected_bottom,
+                },
+            )
+
+        if min(left, top, right, bottom) < 0:
+            return render(
+                request,
+                'image_tools/crop_image.html',
+                {
+                    'form': form,
+                    'error_message': 'Crop coordinates cannot be negative.',
+                    'selected_left': selected_left,
+                    'selected_top': selected_top,
+                    'selected_right': selected_right,
+                    'selected_bottom': selected_bottom,
+                },
+            )
+
+        try:
+            if image:
+                form = CropImageForm(request.POST, request.FILES)
+                form.fields['image'].required = False
+                if not form.is_valid():
+                    return render(
+                        request,
+                        'image_tools/crop_image.html',
+                        {
+                            'form': form,
+                            'selected_left': selected_left,
+                            'selected_top': selected_top,
+                            'selected_right': selected_right,
+                            'selected_bottom': selected_bottom,
+                        },
+                    )
+                output_original_path, output_cropped_path = create_crop_preview(
+                    form.cleaned_data['image'],
+                    left,
+                    top,
+                    right,
+                    bottom,
+                )
+            else:
+                if not original_name:
+                    raise ImageToolError('Upload an image first.')
+                output_original_path = _load_processed_file(original_name)
+                output_cropped_path = crop_image_from_path(output_original_path, left, top, right, bottom)
+            preview_original_url = f"{settings.MEDIA_URL}processed/{output_original_path.name}"
+            preview_cropped_url = f"{settings.MEDIA_URL}processed/{output_cropped_path.name}"
+            original_name = output_original_path.name
+            cropped_name = output_cropped_path.name
+        except ImageToolError as exc:
+            return render(request, 'image_tools/crop_image.html', {'form': form, 'error_message': str(exc)})
 
     return render(request, 'image_tools/crop_image.html', {
         'form': form,
+        'preview_original_url': preview_original_url,
+        'preview_cropped_url': preview_cropped_url,
+        'original_name': original_name,
+        'cropped_name': cropped_name,
+        'selected_left': selected_left,
+        'selected_top': selected_top,
+        'selected_right': selected_right,
+        'selected_bottom': selected_bottom,
         'page_title': 'Crop Image Online',
         'meta_description': 'Crop photos and screenshots with a mouse-driven selection box.',
         'canonical_path': '/image-tools/crop-image/',

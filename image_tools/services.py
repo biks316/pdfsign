@@ -43,6 +43,20 @@ def _save_output(image: Image.Image, extension: str, image_format: str, **save_k
     return output_path
 
 
+def _resolve_image_format(image: Image.Image) -> tuple[str, str]:
+    image_format = (image.format or 'PNG').upper()
+    if image_format == 'JPG':
+        image_format = 'JPEG'
+    extension = 'jpg' if image_format == 'JPEG' else image_format.lower()
+    return image_format, extension
+
+
+def _prepare_image_for_format(image: Image.Image, image_format: str) -> Image.Image:
+    if image_format == 'JPEG' and image.mode not in ('RGB', 'L'):
+        return image.convert('RGB')
+    return image
+
+
 def image_to_pdf(images) -> Path:
     pil_images = []
     for file_obj in images:
@@ -62,9 +76,27 @@ def image_to_pdf(images) -> Path:
 def resize_image(uploaded_file, width: int, height: int) -> Path:
     image = _open_image(uploaded_file)
     resized = image.resize((width, height), Image.Resampling.LANCZOS)
-    fmt = image.format or 'PNG'
-    extension = 'jpg' if fmt == 'JPEG' else fmt.lower()
-    return _save_output(resized, extension=extension, image_format=fmt)
+    image_format, extension = _resolve_image_format(image)
+    resized = _prepare_image_for_format(resized, image_format)
+    return _save_output(resized, extension=extension, image_format=image_format)
+
+
+def create_resize_preview(uploaded_file, width: int, height: int) -> tuple[Path, Path]:
+    image = _open_image(uploaded_file)
+    image_format, extension = _resolve_image_format(image)
+    original = _prepare_image_for_format(image.copy(), image_format)
+    resized = _prepare_image_for_format(
+        image.resize((width, height), Image.Resampling.LANCZOS),
+        image_format,
+    )
+    original_path = _save_output(original, extension=extension, image_format=image_format)
+    resized_path = _save_output(resized, extension=extension, image_format=image_format)
+    return original_path, resized_path
+
+
+def resize_image_from_path(source_path: Path, width: int, height: int) -> Path:
+    with source_path.open('rb') as source_file:
+        return resize_image(source_file, width, height)
 
 
 def compress_image(uploaded_file, quality: int) -> Path:
@@ -74,17 +106,41 @@ def compress_image(uploaded_file, quality: int) -> Path:
 
 def crop_image(uploaded_file, left: int, top: int, right: int, bottom: int) -> Path:
     image = _open_image(uploaded_file)
-    width, height = image.size
+    return _crop_image_instance(image, left, top, right, bottom)
 
+
+def _normalize_crop_box(image: Image.Image, left: int, top: int, right: int, bottom: int) -> tuple[int, int, int, int]:
+    width, height = image.size
     right = min(right, width)
     bottom = min(bottom, height)
     if left >= right or top >= bottom:
         raise ImageToolError('Invalid crop dimensions.')
+    return left, top, right, bottom
 
+
+def _crop_image_instance(image: Image.Image, left: int, top: int, right: int, bottom: int) -> Path:
+    left, top, right, bottom = _normalize_crop_box(image, left, top, right, bottom)
     cropped = image.crop((left, top, right, bottom))
     fmt = image.format or 'PNG'
     extension = 'jpg' if fmt == 'JPEG' else fmt.lower()
     return _save_output(cropped, extension=extension, image_format=fmt)
+
+
+def crop_image_from_path(source_path: Path, left: int, top: int, right: int, bottom: int) -> Path:
+    with source_path.open('rb') as source_file:
+        return crop_image(source_file, left, top, right, bottom)
+
+
+def create_crop_preview(uploaded_file, left: int, top: int, right: int, bottom: int) -> tuple[Path, Path]:
+    image = _open_image(uploaded_file)
+    left, top, right, bottom = _normalize_crop_box(image, left, top, right, bottom)
+    image_format, extension = _resolve_image_format(image)
+    original = _prepare_image_for_format(image.copy(), image_format)
+    cropped_image = image.crop((left, top, right, bottom))
+    cropped = _prepare_image_for_format(cropped_image, image_format)
+    original_path = _save_output(original, extension=extension, image_format=image_format)
+    cropped_path = _save_output(cropped, extension=extension, image_format=image_format)
+    return original_path, cropped_path
 
 
 def convert_image(uploaded_file, target_format: str) -> Path:

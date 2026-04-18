@@ -1,15 +1,19 @@
 {% extends 'base.html' %}
 {% block content %}
 <section class="page-hero"><div class="container"><h1>Crop Image</h1><p>Select crop area with your mouse, resize it, then crop.</p></div></section>
-<section class="section"><div class="container form-wrap"><div class="card form-card">{% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}<form method="post" enctype="multipart/form-data" id="crop-form">{% csrf_token %}
+<section class="section"><div class="container form-wrap"><div class="card form-card">{% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}
+{% if preview_cropped_url %}
+<form method="post">{% csrf_token %}<input type="hidden" name="action" value="download"><input type="hidden" name="cropped_name" value="{{ cropped_name }}"><p class="helper">Preview is ready. Download only if this crop looks correct.</p><button class="btn" type="submit">Download Cropped Image</button></form><hr>
+{% endif %}
+<form method="post" enctype="multipart/form-data" id="crop-form">{% csrf_token %}<input type="hidden" name="action" value="preview"><input type="hidden" name="original_name" value="{{ original_name|default:'' }}">
 <label for="{{ form.image.id_for_label }}">Image</label>{{ form.image }}
 {% if form.image.errors %}{{ form.image.errors }}{% endif %}
-<input type="hidden" name="left" id="id_left" value="{{ form.left.value|default:0 }}">
-<input type="hidden" name="top" id="id_top" value="{{ form.top.value|default:0 }}">
-<input type="hidden" name="right" id="id_right" value="{{ form.right.value|default:0 }}">
-<input type="hidden" name="bottom" id="id_bottom" value="{{ form.bottom.value|default:0 }}">
+<input type="hidden" name="left" id="id_left" value="{{ selected_left|default:'' }}">
+<input type="hidden" name="top" id="id_top" value="{{ selected_top|default:'' }}">
+<input type="hidden" name="right" id="id_right" value="{{ selected_right|default:'' }}">
+<input type="hidden" name="bottom" id="id_bottom" value="{{ selected_bottom|default:'' }}">
 <p class="helper" id="crop-status">Upload an image, draw a square, and resize/move it as needed.</p>
-<button class="btn" type="submit">Crop and Download</button></form></div><div><div class="content-section"><h2>Crop Area</h2><div class="crop-stage-wrap"><div id="crop-stage" class="crop-stage"><img id="crop-image" class="crop-image" alt="Crop preview"><div id="crop-box" class="crop-box" hidden><button type="button" class="crop-handle crop-handle-nw" data-handle="nw"></button><button type="button" class="crop-handle crop-handle-ne" data-handle="ne"></button><button type="button" class="crop-handle crop-handle-sw" data-handle="sw"></button><button type="button" class="crop-handle crop-handle-se" data-handle="se"></button></div></div></div></div><div class="content-section"><h2>How to use</h2><ol class="list-clean"><li>Upload an image file.</li><li>Click and drag to create crop area.</li><li>Drag inside box to move, drag corners to resize.</li><li>Click Crop and Download.</li></ol></div><div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div></div></div></section>
+<button class="btn" type="submit">{% if preview_cropped_url %}Preview Again{% else %}Preview Crop{% endif %}</button></form></div><div><div class="content-section"><h2>Crop Area</h2><div class="crop-stage-wrap"><div id="crop-stage" class="crop-stage"><img id="crop-image" class="crop-image" alt="Crop preview" {% if preview_original_url %}src="{{ preview_original_url }}"{% endif %}><div id="crop-box" class="crop-box" hidden><button type="button" class="crop-handle crop-handle-nw" data-handle="nw"></button><button type="button" class="crop-handle crop-handle-ne" data-handle="ne"></button><button type="button" class="crop-handle crop-handle-sw" data-handle="sw"></button><button type="button" class="crop-handle crop-handle-se" data-handle="se"></button></div></div></div></div>{% if preview_cropped_url %}<div class="content-section"><h2>Before / After</h2><div class="enhance-preview-grid"><figure><img src="{{ preview_original_url }}" alt="Original image preview"><figcaption>Before</figcaption></figure><figure><img src="{{ preview_cropped_url }}" alt="Cropped image preview"><figcaption>After (Square crop)</figcaption></figure></div></div>{% endif %}<div class="content-section"><h2>How to use</h2><ol class="list-clean"><li>Upload an image file.</li><li>Click and drag to create a square crop area.</li><li>Drag inside the box to move, or drag corners to resize.</li><li>Click Preview Crop, confirm output, then download.</li></ol></div><div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div></div></div></section>
 {% endblock %}
 {% block extra_scripts %}
 <script>
@@ -25,6 +29,12 @@
     top: document.getElementById('id_top'),
     right: document.getElementById('id_right'),
     bottom: document.getElementById('id_bottom'),
+  };
+  const initialValues = {
+    left: Number('{{ selected_left|default:"0" }}'),
+    top: Number('{{ selected_top|default:"0" }}'),
+    right: Number('{{ selected_right|default:"0" }}'),
+    bottom: Number('{{ selected_bottom|default:"0" }}'),
   };
 
   const state = {
@@ -154,6 +164,48 @@
     window.removeEventListener('pointerup', endDrag);
   }
 
+  function setDefaultRect() {
+    const stageW = stage.clientWidth;
+    const stageH = stage.clientHeight;
+    if (initialValues.right > initialValues.left && initialValues.bottom > initialValues.top) {
+      const x = clamp(initialValues.left / state.imageScaleX, 0, stageW - 16);
+      const y = clamp(initialValues.top / state.imageScaleY, 0, stageH - 16);
+      const sourceW = (initialValues.right - initialValues.left) / state.imageScaleX;
+      const sourceH = (initialValues.bottom - initialValues.top) / state.imageScaleY;
+      const baseSize = Math.max(16, Math.min(sourceW, sourceH));
+      const maxSize = Math.min(stageW - x, stageH - y);
+      const size = Math.min(baseSize, maxSize);
+      state.rect = { x, y, w: size, h: size };
+      drawRect();
+      return;
+    }
+    const defaultSize = Math.min(stageW, stageH) * 0.55;
+    state.rect = {
+      x: (stageW - defaultSize) / 2,
+      y: (stageH - defaultSize) / 2,
+      w: defaultSize,
+      h: defaultSize,
+    };
+    drawRect();
+  }
+
+  function initImageState() {
+    if (!img.src) {
+      return;
+    }
+    img.onload = () => {
+      state.imageReady = true;
+      const naturalW = img.naturalWidth || 1;
+      const naturalH = img.naturalHeight || 1;
+      state.imageScaleX = naturalW / img.clientWidth;
+      state.imageScaleY = naturalH / img.clientHeight;
+      setDefaultRect();
+    };
+    if (img.complete) {
+      img.onload();
+    }
+  }
+
   fileInput.addEventListener('change', () => {
     const file = fileInput.files[0];
     if (!file) {
@@ -162,21 +214,7 @@
     const reader = new FileReader();
     reader.onload = () => {
       img.src = reader.result;
-      img.onload = () => {
-        state.imageReady = true;
-        const naturalW = img.naturalWidth || 1;
-        const naturalH = img.naturalHeight || 1;
-        state.imageScaleX = naturalW / img.clientWidth;
-        state.imageScaleY = naturalH / img.clientHeight;
-        const defaultSize = Math.min(img.clientWidth, img.clientHeight) * 0.55;
-        state.rect = {
-          x: (img.clientWidth - defaultSize) / 2,
-          y: (img.clientHeight - defaultSize) / 2,
-          w: defaultSize,
-          h: defaultSize,
-        };
-        drawRect();
-      };
+      initImageState();
     };
     reader.readAsDataURL(file);
   });
@@ -198,9 +236,11 @@
   form.addEventListener('submit', (evt) => {
     if (!state.rect || !state.imageReady) {
       evt.preventDefault();
-      status.textContent = 'Please upload an image and create a crop area first.';
+      status.textContent = 'Please upload an image and create a square crop area first.';
     }
   });
+
+  initImageState();
 })();
 </script>
 {% endblock %}

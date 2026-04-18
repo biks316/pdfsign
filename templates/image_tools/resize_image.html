@@ -1,5 +1,636 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-<section class="page-hero"><div class="container"><h1>Resize Image</h1><p>Resize your image to exact dimensions for web or print.</p></div></section>
-<section class="section"><div class="container form-wrap"><div class="card form-card">{% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Resize and Download</button></form></div><div><div class="content-section"><h2>How to use</h2><ol class="list-clean"><li>Upload image.</li><li>Enter width and height.</li><li>Download resized file.</li></ol></div><div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div></div></div></section>
+<section class="page-hero"><div class="container"><h1>Resize Image</h1><p>Upload once, pick size by click/drag, preview before and after, then download when ready.</p></div></section>
+<section class="section"><div class="container form-wrap"><div class="card form-card">{% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}
+{% if preview_resized_url %}
+<form method="post" id="resize-download-form">{% csrf_token %}<input type="hidden" name="action" value="download"><input type="hidden" name="resized_name" value="{{ resized_name }}"><input type="hidden" name="original_name" value="{{ original_name|default:'' }}"><input type="hidden" name="width" id="id_download_width" value="{{ selected_width|default:'' }}"><input type="hidden" name="height" id="id_download_height" value="{{ selected_height|default:'' }}"><input type="hidden" name="left" id="id_download_left" value=""><input type="hidden" name="top" id="id_download_top" value=""><input type="hidden" name="right" id="id_download_right" value=""><input type="hidden" name="bottom" id="id_download_bottom" value=""><p class="helper">Preview is ready. Download only if this looks correct.</p><button class="btn btn-gloss" type="submit">Download Resized Image</button></form><hr>
+{% endif %}
+<form method="post" enctype="multipart/form-data" id="resize-form">{% csrf_token %}<input type="hidden" name="action" value="preview"><input type="hidden" name="original_name" value="{{ original_name|default:'' }}">
+<label for="{{ form.image.id_for_label }}">Image</label>
+<div class="upload-control">
+  <label for="{{ form.image.id_for_label }}" class="upload-dropzone" id="resize-upload-zone">
+    <span class="upload-svg-wrap" aria-hidden="true">
+      <svg class="upload-svg-icon" viewBox="0 0 24 24">
+        <path d="M12 16V6"></path>
+        <path d="m8.5 9.5 3.5-3.5 3.5 3.5"></path>
+        <path d="M4 15.5v2a2.5 2.5 0 0 0 2.5 2.5h11a2.5 2.5 0 0 0 2.5-2.5v-2"></path>
+        <rect x="3.5" y="3.5" width="17" height="17" rx="2.5"></rect>
+      </svg>
+    </span>
+    <span class="upload-copy">
+      <span class="upload-title">Drop or click to upload</span>
+      <span class="upload-sub" id="resize-upload-name">PNG, JPG, JPEG, WEBP</span>
+    </span>
+  </label>
+  {{ form.image }}
+</div>
+{% if form.image.errors %}{{ form.image.errors }}{% endif %}
+<input type="hidden" name="width" id="id_width" value="{{ selected_width|default:'' }}">
+<input type="hidden" name="height" id="id_height" value="{{ selected_height|default:'' }}">
+<input type="hidden" name="left" id="id_left" value="">
+<input type="hidden" name="top" id="id_top" value="">
+<input type="hidden" name="right" id="id_right" value="">
+<input type="hidden" name="bottom" id="id_bottom" value="">
+<p class="helper" id="resize-status">Upload an image, then click and drag on preview to choose output size.</p>
+<div class="resize-action-row">
+<button class="btn btn-gloss" type="submit">{% if preview_resized_url %}Preview Again{% else %}Preview Resize{% endif %}</button>
+<button class="btn btn-gloss btn-gloss-secondary" type="button" id="resize-local-download">Instant Download (No Reload)</button>
+</div>
+</form>
+</div>
+<div>
+<div class="content-section">
+<h2>Interactive Size Selector</h2>
+<div class="resize-workspace">
+<div class="crop-stage-wrap">
+<div id="resize-stage" class="crop-stage">
+<img id="resize-image" class="crop-image resize-image-preview" alt="Resize preview" data-default-src="{% static 'img/default-resize-preview.svg' %}" {% if preview_original_url %}src="{{ preview_original_url }}"{% endif %}>
+<div id="resize-box" class="resize-box" hidden>
+  <button type="button" class="resize-handle resize-handle-nw" data-handle="nw"></button>
+  <button type="button" class="resize-handle resize-handle-n" data-handle="n"></button>
+  <button type="button" class="resize-handle resize-handle-ne" data-handle="ne"></button>
+  <button type="button" class="resize-handle resize-handle-e" data-handle="e"></button>
+  <button type="button" class="resize-handle resize-handle-se" data-handle="se"></button>
+  <button type="button" class="resize-handle resize-handle-s" data-handle="s"></button>
+  <button type="button" class="resize-handle resize-handle-sw" data-handle="sw"></button>
+  <button type="button" class="resize-handle resize-handle-w" data-handle="w"></button>
+</div>
+</div>
+</div>
+<aside class="resize-sidecard">
+  <h3>Live Sidebar</h3>
+  <div class="resize-thumb-wrap">
+    <img id="resize-sidebar-image" class="resize-thumb" alt="Uploaded image sidebar preview" hidden>
+    <p id="resize-sidebar-empty" class="helper">Upload an image to see it here.</p>
+  </div>
+  <div class="resize-mini-preview-wrap">
+    <canvas id="resize-mini-preview" width="240" height="180" aria-label="Instant selection preview"></canvas>
+  </div>
+  <p class="helper" id="resize-mini-meta">Selection preview updates instantly.</p>
+</aside>
+</div>
+</div>
+{% if preview_resized_url %}
+<div class="content-section">
+<h2>Before / After</h2>
+<div class="enhance-preview-grid">
+<figure><img src="{{ preview_original_url }}" alt="Original image preview"><figcaption>Before</figcaption></figure>
+<figure><img src="{{ preview_resized_url }}" alt="Resized image preview"><figcaption>After ({{ selected_width }} x {{ selected_height }})</figcaption></figure>
+</div>
+</div>
+{% endif %}
+<div class="content-section">
+<h2>How to use</h2>
+<ol class="list-clean">
+<li>Upload an image.</li>
+<li>Click and drag on preview to set output size.</li>
+<li>Use any side or corner handle to resize left, right, up, or down.</li>
+<li>Click Instant Download for local processing without page reload.</li>
+</ol>
+</div>
+<div class="content-section"><h2>Related tools</h2>{% for tool in related_tools %}<p><a href="{% url tool.url_name %}">{{ tool.name }}</a></p>{% endfor %}</div></div></div></section>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+(() => {
+  const form = document.getElementById('resize-form');
+  if (!form) {
+    return;
+  }
+  const fileInput = document.getElementById('{{ form.image.id_for_label }}');
+  const formCard = form.closest('.form-card');
+  const uploadLabel = form.querySelector('label[for="{{ form.image.id_for_label }}"]');
+  const uploadControl = form.querySelector('.upload-control');
+  const serverDownloadForm = document.getElementById('resize-download-form');
+  const originalNameField = form.querySelector('input[name="original_name"]');
+  const uploadZone = document.getElementById('resize-upload-zone');
+  const uploadName = document.getElementById('resize-upload-name');
+  const localDownloadButton = document.getElementById('resize-local-download');
+  const sidebarImage = document.getElementById('resize-sidebar-image');
+  const sidebarEmpty = document.getElementById('resize-sidebar-empty');
+  const miniPreviewCanvas = document.getElementById('resize-mini-preview');
+  const miniMeta = document.getElementById('resize-mini-meta');
+  const stage = document.getElementById('resize-stage');
+  const img = document.getElementById('resize-image');
+  const box = document.getElementById('resize-box');
+  const widthField = document.getElementById('id_width');
+  const heightField = document.getElementById('id_height');
+  const leftField = document.getElementById('id_left');
+  const topField = document.getElementById('id_top');
+  const rightField = document.getElementById('id_right');
+  const bottomField = document.getElementById('id_bottom');
+  const downloadWidthField = document.getElementById('id_download_width');
+  const downloadHeightField = document.getElementById('id_download_height');
+  const downloadLeftField = document.getElementById('id_download_left');
+  const downloadTopField = document.getElementById('id_download_top');
+  const downloadRightField = document.getElementById('id_download_right');
+  const downloadBottomField = document.getElementById('id_download_bottom');
+  const status = document.getElementById('resize-status');
+  const initialWidth = Number('{{ selected_width|default:"0" }}');
+  const initialHeight = Number('{{ selected_height|default:"0" }}');
+
+  const state = {
+    imageReady: false,
+    imageScaleX: 1,
+    imageScaleY: 1,
+    imageFrame: null,
+    dragMode: null,
+    startX: 0,
+    startY: 0,
+    rectStart: null,
+    resizeHandle: null,
+    rect: null,
+  };
+  const firstVisitStorageKey = 'resize-default-image-seen-v1';
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function pointerPos(evt) {
+    const bounds = stage.getBoundingClientRect();
+    const frame = state.imageFrame || { x: 0, y: 0, w: bounds.width, h: bounds.height };
+    const minX = frame.x;
+    const minY = frame.y;
+    const maxX = frame.x + frame.w;
+    const maxY = frame.y + frame.h;
+    return {
+      x: clamp(evt.clientX - bounds.left, minX, maxX),
+      y: clamp(evt.clientY - bounds.top, minY, maxY),
+    };
+  }
+
+  function setSidebarSource(src) {
+    if (!sidebarImage || !sidebarEmpty) {
+      return;
+    }
+    if (!src) {
+      sidebarImage.hidden = true;
+      sidebarImage.removeAttribute('src');
+      sidebarEmpty.hidden = false;
+      return;
+    }
+    sidebarImage.src = src;
+    sidebarImage.hidden = false;
+    sidebarEmpty.hidden = true;
+  }
+
+  function setUploadedMode(enabled) {
+    if (!formCard) {
+      return;
+    }
+    formCard.classList.toggle('resize-image-loaded', !!enabled);
+    if (serverDownloadForm) {
+      serverDownloadForm.hidden = !!enabled;
+    }
+    if (uploadLabel) {
+      uploadLabel.hidden = !!enabled;
+    }
+    if (uploadControl) {
+      uploadControl.hidden = !!enabled;
+    }
+  }
+
+  function clearMiniPreview(message = 'Selection preview updates instantly.') {
+    if (!miniPreviewCanvas || !miniMeta) {
+      return;
+    }
+    const ctx = miniPreviewCanvas.getContext('2d');
+    if (!ctx) {
+      miniMeta.textContent = 'Preview unavailable in this browser.';
+      return;
+    }
+    ctx.clearRect(0, 0, miniPreviewCanvas.width, miniPreviewCanvas.height);
+    ctx.fillStyle = '#f4f7ff';
+    ctx.fillRect(0, 0, miniPreviewCanvas.width, miniPreviewCanvas.height);
+    ctx.fillStyle = '#90a0bb';
+    ctx.font = '13px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('No selection yet', 12, 24);
+    miniMeta.textContent = message;
+  }
+
+  function renderMiniPreview(outputWidth, outputHeight, sourceX, sourceY, sourceW, sourceH) {
+    if (!miniPreviewCanvas || !miniMeta || !state.imageReady || !state.rect || !state.imageFrame) {
+      return;
+    }
+    const ctx = miniPreviewCanvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+    const canvasW = miniPreviewCanvas.width;
+    const canvasH = miniPreviewCanvas.height;
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    ctx.fillStyle = '#edf3ff';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    const scale = Math.min(canvasW / outputWidth, canvasH / outputHeight);
+    const drawW = Math.max(1, Math.round(outputWidth * scale));
+    const drawH = Math.max(1, Math.round(outputHeight * scale));
+    const dx = Math.floor((canvasW - drawW) / 2);
+    const dy = Math.floor((canvasH - drawH) / 2);
+    ctx.drawImage(img, sourceX, sourceY, sourceW, sourceH, dx, dy, drawW, drawH);
+    miniMeta.textContent = `Instant preview: ${outputWidth} x ${outputHeight}px`;
+  }
+
+  function drawRect() {
+    if (!state.rect) {
+      box.hidden = true;
+      widthField.value = '';
+      heightField.value = '';
+      leftField.value = '';
+      topField.value = '';
+      rightField.value = '';
+      bottomField.value = '';
+      if (downloadWidthField && downloadHeightField) {
+        downloadWidthField.value = '';
+        downloadHeightField.value = '';
+      }
+      if (downloadLeftField && downloadTopField && downloadRightField && downloadBottomField) {
+        downloadLeftField.value = '';
+        downloadTopField.value = '';
+        downloadRightField.value = '';
+        downloadBottomField.value = '';
+      }
+      clearMiniPreview();
+      updateInstantButtonState();
+      return;
+    }
+    box.hidden = false;
+    box.style.left = `${state.rect.x}px`;
+    box.style.top = `${state.rect.y}px`;
+    box.style.width = `${state.rect.w}px`;
+    box.style.height = `${state.rect.h}px`;
+    const frame = state.imageFrame || { x: 0, y: 0, w: stage.clientWidth, h: stage.clientHeight };
+    const outputWidth = Math.max(16, Math.round(state.rect.w * state.imageScaleX));
+    const outputHeight = Math.max(16, Math.round(state.rect.h * state.imageScaleY));
+    widthField.value = outputWidth;
+    heightField.value = outputHeight;
+    const outputLeft = Math.max(0, Math.round((state.rect.x - frame.x) * state.imageScaleX));
+    const outputTop = Math.max(0, Math.round((state.rect.y - frame.y) * state.imageScaleY));
+    const outputRight = outputLeft + outputWidth;
+    const outputBottom = outputTop + outputHeight;
+    leftField.value = outputLeft;
+    topField.value = outputTop;
+    rightField.value = outputRight;
+    bottomField.value = outputBottom;
+    if (downloadWidthField && downloadHeightField) {
+      downloadWidthField.value = outputWidth;
+      downloadHeightField.value = outputHeight;
+    }
+    if (downloadLeftField && downloadTopField && downloadRightField && downloadBottomField) {
+      downloadLeftField.value = outputLeft;
+      downloadTopField.value = outputTop;
+      downloadRightField.value = outputRight;
+      downloadBottomField.value = outputBottom;
+    }
+    renderMiniPreview(
+      outputWidth,
+      outputHeight,
+      outputLeft,
+      outputTop,
+      outputRight - outputLeft,
+      outputBottom - outputTop,
+    );
+    status.textContent = `Selected size: ${outputWidth} x ${outputHeight} px`;
+    updateInstantButtonState();
+  }
+
+  function setDefaultRect() {
+    const frame = state.imageFrame || { x: 0, y: 0, w: stage.clientWidth, h: stage.clientHeight };
+    let rectW = frame.w * 0.65;
+    let rectH = frame.h * 0.65;
+    if (initialWidth > 0 && initialHeight > 0) {
+      rectW = clamp(initialWidth / state.imageScaleX, 16, frame.w);
+      rectH = clamp(initialHeight / state.imageScaleY, 16, frame.h);
+    }
+    state.rect = {
+      x: frame.x + (frame.w - rectW) / 2,
+      y: frame.y + (frame.h - rectH) / 2,
+      w: rectW,
+      h: rectH,
+    };
+    drawRect();
+  }
+
+  function beginDrag(evt, mode, handleName = null) {
+    if (!state.imageReady) {
+      return;
+    }
+    evt.preventDefault();
+    const pos = pointerPos(evt);
+    state.dragMode = mode;
+    state.startX = pos.x;
+    state.startY = pos.y;
+    state.rectStart = state.rect ? { ...state.rect } : null;
+    state.resizeHandle = handleName;
+    if (mode === 'draw') {
+      state.rect = { x: pos.x, y: pos.y, w: 0, h: 0 };
+      drawRect();
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', endDrag);
+  }
+
+  function onMove(evt) {
+    if (!state.dragMode) {
+      return;
+    }
+    const pos = pointerPos(evt);
+    const minSize = 16;
+    if (state.dragMode === 'draw') {
+      const x = Math.min(state.startX, pos.x);
+      const y = Math.min(state.startY, pos.y);
+      const w = clamp(Math.abs(pos.x - state.startX), minSize, stage.clientWidth - x);
+      const h = clamp(Math.abs(pos.y - state.startY), minSize, stage.clientHeight - y);
+      state.rect = { x, y, w, h };
+      drawRect();
+      return;
+    }
+    if (!state.rectStart) {
+      return;
+    }
+    if (state.dragMode === 'move') {
+      const frame = state.imageFrame || { x: 0, y: 0, w: stage.clientWidth, h: stage.clientHeight };
+      const x = clamp(
+        state.rectStart.x + (pos.x - state.startX),
+        frame.x,
+        frame.x + frame.w - state.rectStart.w,
+      );
+      const y = clamp(
+        state.rectStart.y + (pos.y - state.startY),
+        frame.y,
+        frame.y + frame.h - state.rectStart.h,
+      );
+      state.rect = { x, y, w: state.rectStart.w, h: state.rectStart.h };
+      drawRect();
+      return;
+    }
+    if (state.dragMode === 'resize') {
+      const frame = state.imageFrame || { x: 0, y: 0, w: stage.clientWidth, h: stage.clientHeight };
+      const minX = frame.x;
+      const minY = frame.y;
+      const maxX = frame.x + frame.w;
+      const maxY = frame.y + frame.h;
+      const handle = state.resizeHandle || 'se';
+      let left = state.rectStart.x;
+      let top = state.rectStart.y;
+      let right = state.rectStart.x + state.rectStart.w;
+      let bottom = state.rectStart.y + state.rectStart.h;
+
+      if (handle.includes('w')) {
+        left = clamp(pos.x, minX, maxX);
+      }
+      if (handle.includes('e')) {
+        right = clamp(pos.x, minX, maxX);
+      }
+      if (handle.includes('n')) {
+        top = clamp(pos.y, minY, maxY);
+      }
+      if (handle.includes('s')) {
+        bottom = clamp(pos.y, minY, maxY);
+      }
+
+      if (left > right) {
+        [left, right] = [right, left];
+      }
+      if (top > bottom) {
+        [top, bottom] = [bottom, top];
+      }
+
+      if (right - left < minSize) {
+        if (handle.includes('w') && !handle.includes('e')) {
+          left = right - minSize;
+        } else {
+          right = left + minSize;
+        }
+      }
+      if (bottom - top < minSize) {
+        if (handle.includes('n') && !handle.includes('s')) {
+          top = bottom - minSize;
+        } else {
+          bottom = top + minSize;
+        }
+      }
+
+      left = clamp(left, minX, maxX - minSize);
+      top = clamp(top, minY, maxY - minSize);
+      right = clamp(right, left + minSize, maxX);
+      bottom = clamp(bottom, top + minSize, maxY);
+      state.rect = { x: left, y: top, w: right - left, h: bottom - top };
+      drawRect();
+    }
+  }
+
+  function endDrag() {
+    state.dragMode = null;
+    state.rectStart = null;
+    state.resizeHandle = null;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', endDrag);
+  }
+
+  function initImageState() {
+    if (!img.src) {
+      return;
+    }
+    function syncImageFrame() {
+      const stageBounds = stage.getBoundingClientRect();
+      const imgBounds = img.getBoundingClientRect();
+      state.imageFrame = {
+        x: clamp(imgBounds.left - stageBounds.left, 0, stage.clientWidth),
+        y: clamp(imgBounds.top - stageBounds.top, 0, stage.clientHeight),
+        w: clamp(imgBounds.width, 1, stage.clientWidth),
+        h: clamp(imgBounds.height, 1, stage.clientHeight),
+      };
+    }
+    img.onload = () => {
+      state.imageReady = true;
+      syncImageFrame();
+      const naturalW = img.naturalWidth || 1;
+      const naturalH = img.naturalHeight || 1;
+      state.imageScaleX = naturalW / (state.imageFrame ? state.imageFrame.w : img.clientWidth);
+      state.imageScaleY = naturalH / (state.imageFrame ? state.imageFrame.h : img.clientHeight);
+      setSidebarSource(img.src);
+      setDefaultRect();
+    };
+    if (img.complete) {
+      img.onload();
+    }
+  }
+
+  function setUploadFilename(name) {
+    if (!name) {
+      uploadName.textContent = 'PNG, JPG, JPEG, WEBP';
+      uploadZone.classList.remove('has-file');
+      setSidebarSource('');
+      clearMiniPreview();
+      setUploadedMode(false);
+      updateInstantButtonState();
+      return;
+    }
+    uploadName.textContent = name;
+    uploadZone.classList.add('has-file');
+    setUploadedMode(true);
+    updateInstantButtonState();
+  }
+
+  function loadFile(file) {
+    if (!file) {
+      return;
+    }
+    setUploadFilename(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.src = reader.result;
+      initImageState();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function applyFirstVisitDefaultImage() {
+    if (img.getAttribute('src') || !img.dataset.defaultSrc) {
+      return;
+    }
+    try {
+      if (window.localStorage.getItem(firstVisitStorageKey) === '1') {
+        return;
+      }
+      img.src = img.dataset.defaultSrc;
+      status.textContent = 'Sample image is shown for first-time visit. Upload your own image to resize.';
+      initImageState();
+      window.localStorage.setItem(firstVisitStorageKey, '1');
+    } catch (error) {
+      img.src = img.dataset.defaultSrc;
+      initImageState();
+    }
+  }
+
+  function getLocalMimeType() {
+    const fileType = fileInput.files[0] ? fileInput.files[0].type : '';
+    if (fileType === 'image/png' || fileType === 'image/jpeg' || fileType === 'image/webp') {
+      return fileType;
+    }
+    return 'image/png';
+  }
+
+  function getDownloadFilename() {
+    const sourceName = fileInput.files[0] ? fileInput.files[0].name : 'resized-image.png';
+    const dotIndex = sourceName.lastIndexOf('.');
+    const base = dotIndex > 0 ? sourceName.slice(0, dotIndex) : sourceName;
+    const mime = getLocalMimeType();
+    const extension = mime === 'image/jpeg' ? 'jpg' : (mime === 'image/webp' ? 'webp' : 'png');
+    return `${base}-resized.${extension}`;
+  }
+
+  function updateInstantButtonState() {
+    if (!localDownloadButton) {
+      return;
+    }
+    localDownloadButton.disabled = !state.imageReady || !widthField.value || !heightField.value;
+  }
+
+  function instantDownload() {
+    const outputWidth = Number(widthField.value);
+    const outputHeight = Number(heightField.value);
+    if (!state.imageReady || !outputWidth || !outputHeight) {
+      status.textContent = 'Choose a valid resize area first.';
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      status.textContent = 'Browser cannot process local resize here.';
+      return;
+    }
+    if (!state.rect || !state.imageFrame) {
+      status.textContent = 'Draw a selection area first.';
+      return;
+    }
+    const sourceX = Math.max(0, Math.round((state.rect.x - state.imageFrame.x) * state.imageScaleX));
+    const sourceY = Math.max(0, Math.round((state.rect.y - state.imageFrame.y) * state.imageScaleY));
+    const sourceW = Math.max(1, Math.round(state.rect.w * state.imageScaleX));
+    const sourceH = Math.max(1, Math.round(state.rect.h * state.imageScaleY));
+    ctx.drawImage(img, sourceX, sourceY, sourceW, sourceH, 0, 0, outputWidth, outputHeight);
+    const mime = getLocalMimeType();
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        status.textContent = 'Could not generate resized file.';
+        return;
+      }
+      const blobUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = blobUrl;
+      anchor.download = getDownloadFilename();
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(blobUrl);
+      status.textContent = `Done. Downloaded ${outputWidth} x ${outputHeight} locally.`;
+    }, mime, 0.94);
+  }
+
+  fileInput.addEventListener('change', () => {
+    loadFile(fileInput.files[0]);
+  });
+
+  uploadZone.addEventListener('dragover', (evt) => {
+    evt.preventDefault();
+    uploadZone.classList.add('is-dragover');
+  });
+
+  uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('is-dragover');
+  });
+
+  uploadZone.addEventListener('drop', (evt) => {
+    evt.preventDefault();
+    uploadZone.classList.remove('is-dragover');
+    const file = evt.dataTransfer && evt.dataTransfer.files ? evt.dataTransfer.files[0] : null;
+    if (!file) {
+      return;
+    }
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    fileInput.files = transfer.files;
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
+  stage.addEventListener('pointerdown', (evt) => {
+    const handle = evt.target.closest('.resize-handle');
+    if (handle) {
+      beginDrag(evt, 'resize', handle.dataset.handle || 'se');
+      return;
+    }
+    if (evt.target === box || evt.target.closest('#resize-box')) {
+      beginDrag(evt, 'move');
+      return;
+    }
+    if (evt.target === img || evt.target === stage) {
+      beginDrag(evt, 'draw');
+    }
+  });
+
+  if (localDownloadButton) {
+    localDownloadButton.addEventListener('click', instantDownload);
+  }
+
+  form.addEventListener('submit', (evt) => {
+    if (!widthField.value || !heightField.value) {
+      evt.preventDefault();
+      status.textContent = 'Select a resize area first.';
+    }
+  });
+
+  initImageState();
+  setUploadFilename(fileInput.files[0] ? fileInput.files[0].name : '');
+  applyFirstVisitDefaultImage();
+  setUploadedMode(Boolean(originalNameField && originalNameField.value));
+  clearMiniPreview();
+  updateInstantButtonState();
+})();
+</script>
 {% endblock %}

@@ -107,10 +107,40 @@ a { color: inherit; text-decoration: none; }
 }
 
 .btn:hover { background: var(--brand-dark); transform: translateY(-1px); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 .btn-sm { padding: 0.55rem 0.75rem; font-size: 0.92rem; }
 .btn-secondary { background: #42526b; }
 .btn-secondary:hover { background: #2f3c52; }
+
+.btn-gloss {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(165deg, #4f8eff 0%, #2f72ff 52%, #225fe2 100%);
+  box-shadow: 0 10px 24px rgba(32, 96, 220, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.btn-gloss::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.btn-gloss:hover {
+  background: linear-gradient(165deg, #3f84ff 0%, #2a68ea 50%, #1f53bf 100%);
+  box-shadow: 0 12px 28px rgba(26, 84, 204, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.btn-gloss-secondary {
+  background: linear-gradient(165deg, #4b5f84 0%, #3f5378 48%, #324667 100%);
+  box-shadow: 0 10px 22px rgba(36, 53, 82, 0.27), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
+
+.btn-gloss-secondary:hover {
+  background: linear-gradient(165deg, #43587d 0%, #394d71 48%, #2d405f 100%);
+}
 
 .section { padding: 3rem 0; }
 
@@ -318,6 +348,90 @@ a { color: inherit; text-decoration: none; }
   background: #fff;
 }
 
+.upload-control {
+  position: relative;
+  margin-bottom: 0.85rem;
+}
+
+.upload-control input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.upload-dropzone {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  border: 1px dashed #9bb6ef;
+  border-radius: 12px;
+  padding: 0.8rem;
+  background: linear-gradient(140deg, #f8fbff 0%, #eef5ff 55%, #f4fbff 100%);
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone:focus-visible,
+.upload-dropzone.is-dragover {
+  border-color: var(--brand);
+  box-shadow: 0 10px 20px rgba(18, 73, 191, 0.16);
+  transform: translateY(-1px);
+}
+
+.upload-dropzone.has-file {
+  border-style: solid;
+  border-color: #87b0ff;
+}
+
+.upload-svg-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid #c7dafb;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  flex: 0 0 48px;
+}
+
+.upload-svg-icon {
+  width: 30px;
+  height: 30px;
+  stroke: var(--brand);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.upload-dropzone:hover .upload-svg-icon,
+.upload-dropzone.is-dragover .upload-svg-icon {
+  animation: uploadPop 560ms ease;
+}
+
+.upload-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.upload-title {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.upload-sub {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
 .form-card label {
   display: block;
   font-weight: 600;
@@ -362,6 +476,70 @@ a { color: inherit; text-decoration: none; }
   background: #f5f8ff;
 }
 
+.resize-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.resize-sidecard {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(170deg, #ffffff 0%, #f7f9ff 100%);
+  padding: 0.9rem;
+  box-shadow: 0 12px 30px rgba(24, 45, 88, 0.08);
+}
+
+.resize-sidecard h3 {
+  margin-top: 0;
+  margin-bottom: 0.6rem;
+}
+
+.resize-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.4rem;
+}
+
+.resize-thumb-wrap {
+  border-radius: 10px;
+  border: 1px solid #d8e2f6;
+  background: #f2f6ff;
+  min-height: 104px;
+  display: grid;
+  place-items: center;
+  padding: 0.45rem;
+}
+
+.resize-thumb {
+  width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #c9d8f7;
+  background: #fff;
+}
+
+.resize-mini-preview-wrap {
+  margin-top: 0.7rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #d8e2f6;
+  background: #f3f7ff;
+}
+
+#resize-mini-preview {
+  width: 100%;
+  display: block;
+  height: auto;
+}
+
+#resize-mini-meta {
+  margin: 0.5rem 0 0;
+}
+
 .crop-stage {
   position: relative;
   width: 100%;
@@ -384,6 +562,38 @@ a { color: inherit; text-decoration: none; }
   cursor: move;
 }
 
+.resize-image-preview {
+  max-height: 340px;
+}
+
+.resize-box {
+  position: absolute;
+  border: 2px dashed var(--brand);
+  background: rgba(23, 102, 255, 0.16);
+  cursor: move;
+}
+
+.resize-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--brand);
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.resize-handle-nw { left: -8px; top: -8px; cursor: nwse-resize; }
+.resize-handle-ne { right: -8px; top: -8px; cursor: nesw-resize; }
+.resize-handle-sw { left: -8px; bottom: -8px; cursor: nesw-resize; }
+.resize-handle-se { right: -8px; bottom: -8px; cursor: nwse-resize; }
+.resize-handle-n { left: calc(50% - 7px); top: -8px; cursor: ns-resize; }
+.resize-handle-e { right: -8px; top: calc(50% - 7px); cursor: ew-resize; }
+.resize-handle-s { left: calc(50% - 7px); bottom: -8px; cursor: ns-resize; }
+.resize-handle-w { left: -8px; top: calc(50% - 7px); cursor: ew-resize; }
+
 .crop-handle {
   position: absolute;
   width: 14px;
@@ -400,6 +610,16 @@ a { color: inherit; text-decoration: none; }
 .crop-handle-ne { right: -8px; top: -8px; cursor: nesw-resize; }
 .crop-handle-sw { left: -8px; bottom: -8px; cursor: nesw-resize; }
 .crop-handle-se { right: -8px; bottom: -8px; cursor: nwse-resize; }
+.crop-handle-n { left: calc(50% - 7px); top: -8px; cursor: ns-resize; }
+.crop-handle-e { right: -8px; top: calc(50% - 7px); cursor: ew-resize; }
+.crop-handle-s { left: calc(50% - 7px); bottom: -8px; cursor: ns-resize; }
+.crop-handle-w { left: -8px; top: calc(50% - 7px); cursor: ew-resize; }
+
+@media (max-width: 980px) {
+  .resize-workspace {
+    grid-template-columns: 1fr;
+  }
+}
 
 .enhance-preview-grid {
   display: grid;
@@ -534,6 +754,12 @@ a { color: inherit; text-decoration: none; }
 @keyframes nodePop {
   from { transform: scale(1); }
   to { transform: scale(1.02); }
+}
+
+@keyframes uploadPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
 }
 
 @media (max-width: 1020px) {
