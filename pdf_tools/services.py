@@ -95,6 +95,15 @@ def process_sign_pdf(input_path: Path, placements_json: str) -> Path:
             if not (0 <= x_ratio <= 1 and 0 <= y_ratio <= 1):
                 raise PDFToolError('Placement coordinates are out of range.')
 
+            width_ratio_raw = placement.get('width_ratio')
+            height_ratio_raw = placement.get('height_ratio')
+            width_ratio = None if width_ratio_raw is None else _safe_float(width_ratio_raw, 'width ratio')
+            height_ratio = None if height_ratio_raw is None else _safe_float(height_ratio_raw, 'height ratio')
+            if width_ratio is not None and not (0 < width_ratio <= 1):
+                raise PDFToolError('Width ratio is out of range.')
+            if height_ratio is not None and not (0 < height_ratio <= 1):
+                raise PDFToolError('Height ratio is out of range.')
+
             page = doc[page_number - 1]
             rect = page.rect
             x = rect.width * x_ratio
@@ -105,9 +114,21 @@ def process_sign_pdf(input_path: Path, placements_json: str) -> Path:
                 pixmap = fitz.Pixmap(signature_bytes)
                 aspect_ratio = max(0.1, pixmap.width / max(1, pixmap.height))
 
-                sig_width = max(120, rect.width * 0.24)
+                if width_ratio is not None:
+                    sig_width = rect.width * width_ratio
+                    sig_height = sig_width / aspect_ratio
+                elif height_ratio is not None:
+                    sig_height = rect.height * height_ratio
+                    sig_width = sig_height * aspect_ratio
+                else:
+                    sig_width = max(120, rect.width * 0.24)
+                    sig_height = sig_width / aspect_ratio
+
+                min_sig_width = max(36, rect.width * 0.06)
+                sig_width = min(max(sig_width, min_sig_width), rect.width)
                 sig_height = sig_width / aspect_ratio
-                max_sig_height = rect.height * 0.16
+                has_custom_size = width_ratio is not None or height_ratio is not None
+                max_sig_height = rect.height if has_custom_size else rect.height * 0.16
                 if sig_height > max_sig_height:
                     sig_height = max_sig_height
                     sig_width = sig_height * aspect_ratio

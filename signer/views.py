@@ -112,11 +112,19 @@ def sign_pdf_view(request, file_id):
             page_number = int(placement.get('page_number'))
             x_ratio = float(placement.get('x_ratio'))
             y_ratio = float(placement.get('y_ratio'))
+            width_ratio_raw = placement.get('width_ratio')
+            height_ratio_raw = placement.get('height_ratio')
+            width_ratio = float(width_ratio_raw) if width_ratio_raw is not None else None
+            height_ratio = float(height_ratio_raw) if height_ratio_raw is not None else None
 
             if page_number < 1 or page_number > doc.page_count:
                 raise ValueError('Invalid page selected.')
             if not (0 <= x_ratio <= 1) or not (0 <= y_ratio <= 1):
                 raise ValueError('Invalid coordinates.')
+            if width_ratio is not None and not (0 < width_ratio <= 1):
+                raise ValueError('Invalid width ratio.')
+            if height_ratio is not None and not (0 < height_ratio <= 1):
+                raise ValueError('Invalid height ratio.')
 
             page = doc[page_number - 1]
             page_rect = page.rect
@@ -127,7 +135,7 @@ def sign_pdf_view(request, file_id):
             sig_rect = None
             if placement_include_signature:
                 signature_data = placement.get('signature_data', '')
-                if not isinstance(signature_data, str) or not signature_data.startswith('data:image/png;base64,'):
+                if not isinstance(signature_data, str) or not signature_data.startswith('data:image/'):
                     raise ValueError('Invalid signature format.')
 
                 _, image_data = signature_data.split(',', 1)
@@ -140,9 +148,21 @@ def sign_pdf_view(request, file_id):
                     raise ValueError('Invalid signature dimensions.')
                 aspect_ratio = signature_pixmap.width / signature_pixmap.height
 
-                sig_width = max(120, page_rect.width * 0.24)
+                if width_ratio is not None:
+                    sig_width = page_rect.width * width_ratio
+                    sig_height = sig_width / max(aspect_ratio, 0.1)
+                elif height_ratio is not None:
+                    sig_height = page_rect.height * height_ratio
+                    sig_width = sig_height * max(aspect_ratio, 0.1)
+                else:
+                    sig_width = max(120, page_rect.width * 0.24)
+                    sig_height = sig_width / max(aspect_ratio, 0.1)
+
+                min_sig_width = max(36, page_rect.width * 0.06)
+                sig_width = min(max(sig_width, min_sig_width), page_rect.width)
                 sig_height = sig_width / max(aspect_ratio, 0.1)
-                max_sig_height = page_rect.height * 0.16
+                has_custom_size = width_ratio is not None or height_ratio is not None
+                max_sig_height = page_rect.height if has_custom_size else page_rect.height * 0.16
                 if sig_height > max_sig_height:
                     sig_height = max_sig_height
                     sig_width = sig_height * aspect_ratio

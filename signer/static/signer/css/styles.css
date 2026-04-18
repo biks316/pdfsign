@@ -127,6 +127,7 @@ button.secondary:hover {
 .pdf-page {
   margin: 0 0 1rem;
   position: relative;
+  overflow: hidden;
 }
 
 .pdf-page:last-child {
@@ -141,13 +142,41 @@ button.secondary:hover {
   cursor: crosshair;
 }
 
-.sig-preview {
+.pdf-overlay {
   position: absolute;
+  inset: 0;
   pointer-events: none;
-  opacity: 0.9;
-  display: none;
+}
+
+.sig-preview-box {
+  position: absolute;
   border: 1px solid rgba(31, 94, 255, 0.55);
+  border-radius: 4px;
   background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 8px rgba(16, 24, 39, 0.18);
+}
+
+.sig-preview {
+  position: static;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.94;
+  display: block;
+}
+
+.sig-resize-handle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #ffffff;
+  border-radius: 999px;
+  background: #1f5eff;
+  box-shadow: 0 2px 6px rgba(12, 23, 48, 0.35);
+  cursor: nwse-resize;
+  touch-action: none;
 }
 
 .sig-date-preview {

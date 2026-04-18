@@ -25,6 +25,10 @@ if (!layout) {
   const placements = [];
   let placementCounter = 0;
 
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
   function pointFromEvent(event) {
     const rect = signatureCanvas.getBoundingClientRect();
     return {
@@ -71,6 +75,8 @@ if (!layout) {
       page_number: item.pageNumber,
       x_ratio: item.xRatio,
       y_ratio: item.yRatio,
+      width_ratio: item.widthRatio,
+      height_ratio: item.heightRatio,
       signature_data: item.signatureData,
       include_signature: item.includeSignature,
       include_date: item.includeDate,
@@ -88,7 +94,7 @@ if (!layout) {
     syncInput();
   }
 
-  function addPlacement(pageWrapper, pageNumber, clickX, clickY, rectWidth, rectHeight) {
+  function addPlacement(overlay, pageNumber, clickX, clickY, rectWidth, rectHeight) {
     const includeSignature = includeSignatureCheckbox.checked;
     const includeDate = includeDateCheckbox.checked;
 
@@ -112,6 +118,8 @@ if (!layout) {
       pageNumber,
       xRatio: clickX / rectWidth,
       yRatio: clickY / rectHeight,
+      widthRatio: null,
+      heightRatio: null,
       signatureData: includeSignature ? signatureDataUrl : '',
       includeSignature,
       includeDate,
@@ -120,16 +128,96 @@ if (!layout) {
     placements.push(placement);
 
     if (includeSignature) {
+      const initialWidth = Math.max(90, rectWidth * 0.26);
+      const initialHeight = Math.max(26, rectHeight * 0.06);
+      const left = clamp(clickX, 0, Math.max(0, rectWidth - initialWidth));
+      const top = clamp(clickY, 0, Math.max(0, rectHeight - initialHeight));
+      placement.xRatio = left / rectWidth;
+      placement.yRatio = top / rectHeight;
+      placement.widthRatio = initialWidth / rectWidth;
+      placement.heightRatio = initialHeight / rectHeight;
+
+      const box = document.createElement('div');
+      box.className = 'sig-preview-box';
+      box.dataset.placementId = String(placement.id);
+      box.style.left = `${left}px`;
+      box.style.top = `${top}px`;
+      box.style.width = `${initialWidth}px`;
+      box.style.height = `${initialHeight}px`;
+
       const img = document.createElement('img');
       img.className = 'sig-preview';
       img.src = signatureDataUrl;
       img.alt = 'signature preview';
-      img.dataset.placementId = String(placement.id);
-      img.style.left = `${clickX}px`;
-      img.style.top = `${clickY}px`;
-      img.style.width = `${Math.max(90, rectWidth * 0.26)}px`;
-      img.style.height = `${Math.max(26, rectHeight * 0.06)}px`;
-      pageWrapper.appendChild(img);
+      box.appendChild(img);
+
+      const resizeHandle = document.createElement('button');
+      resizeHandle.type = 'button';
+      resizeHandle.className = 'sig-resize-handle';
+      resizeHandle.title = 'Resize signature';
+      resizeHandle.setAttribute('aria-label', 'Resize signature');
+      box.appendChild(resizeHandle);
+
+      let resizeState = null;
+      const stopResize = () => {
+        resizeState = null;
+      };
+
+      resizeHandle.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const pageRect = overlay.getBoundingClientRect();
+        const boxRect = box.getBoundingClientRect();
+        resizeState = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startWidth: boxRect.width,
+          left: parseFloat(box.style.left) || 0,
+          top: parseFloat(box.style.top) || 0,
+          pageWidth: pageRect.width,
+          pageHeight: pageRect.height,
+          aspectRatio: boxRect.width / Math.max(1, boxRect.height),
+        };
+      });
+
+      const onResizeMove = (event) => {
+        if (!resizeState || event.pointerId !== resizeState.pointerId) {
+          return;
+        }
+        event.preventDefault();
+        const minWidth = Math.max(56, resizeState.pageWidth * 0.08);
+        const maxWidth = Math.max(minWidth, resizeState.pageWidth - resizeState.left);
+        let nextWidth = clamp(
+          resizeState.startWidth + (event.clientX - resizeState.startX),
+          minWidth,
+          maxWidth,
+        );
+        let nextHeight = nextWidth / resizeState.aspectRatio;
+        const maxHeight = Math.max(20, resizeState.pageHeight - resizeState.top);
+        if (nextHeight > maxHeight) {
+          nextHeight = maxHeight;
+          nextWidth = nextHeight * resizeState.aspectRatio;
+        }
+
+        box.style.width = `${nextWidth}px`;
+        box.style.height = `${nextHeight}px`;
+        placement.widthRatio = nextWidth / resizeState.pageWidth;
+        placement.heightRatio = nextHeight / resizeState.pageHeight;
+        syncInput();
+      };
+
+      const onResizeUp = (event) => {
+        if (!resizeState || event.pointerId !== resizeState.pointerId) {
+          return;
+        }
+        stopResize();
+      };
+
+      window.addEventListener('pointermove', onResizeMove);
+      window.addEventListener('pointerup', onResizeUp);
+      window.addEventListener('pointercancel', onResizeUp);
+
+      overlay.appendChild(box);
     }
 
     if (includeDate) {
@@ -139,7 +227,7 @@ if (!layout) {
       dateEl.textContent = new Date().toISOString().slice(0, 10);
       dateEl.style.left = `${clickX}px`;
       dateEl.style.top = `${clickY + 14}px`;
-      pageWrapper.appendChild(dateEl);
+      overlay.appendChild(dateEl);
     }
 
     syncInput();
@@ -215,14 +303,22 @@ if (!layout) {
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       pageWrapper.appendChild(canvas);
+      const overlay = document.createElement('div');
+      overlay.className = 'pdf-overlay';
+      pageWrapper.appendChild(overlay);
       pagesContainer.appendChild(pageWrapper);
 
       const context = canvas.getContext('2d');
       await page.render({ canvasContext: context, viewport }).promise;
 
-      canvas.addEventListener('click', (event) => {
+      canvas.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) {
+          return;
+        }
         const rect = canvas.getBoundingClientRect();
-        addPlacement(pageWrapper, pageNum, event.clientX - rect.left, event.clientY - rect.top, rect.width, rect.height);
+        const clickX = clamp(event.clientX - rect.left, 0, rect.width);
+        const clickY = clamp(event.clientY - rect.top, 0, rect.height);
+        addPlacement(overlay, pageNum, clickX, clickY, rect.width, rect.height);
       });
     }
   }
