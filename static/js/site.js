@@ -6,7 +6,11 @@ document.addEventListener("DOMContentLoaded", () => {
     initRevealAnimations();
     initHeroTilt();
     initCardTilt();
+    initHomeOrbit();
+    initMagneticButtons();
   }
+
+  initGoogleSidePopup();
 });
 
 function initRevealAnimations() {
@@ -74,5 +78,64 @@ function initCardTilt() {
       card.style.transform = "";
       card.classList.remove("is-hovered");
     });
+  });
+}
+
+function initHomeOrbit() {
+  const orbit = document.querySelector(".home-orbit");
+  if (!orbit) return;
+
+  orbit.addEventListener("pointermove", (event) => {
+    const bounds = orbit.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    orbit.style.transform = `translate3d(${x * 6}px, ${y * 6}px, 0) scale(1.01)`;
+  });
+
+  orbit.addEventListener("pointerleave", () => {
+    orbit.style.transform = "";
+  });
+}
+
+function initMagneticButtons() {
+  const buttons = document.querySelectorAll(".magnetic-btn");
+  buttons.forEach((btn) => {
+    btn.addEventListener("pointermove", (event) => {
+      const box = btn.getBoundingClientRect();
+      const x = event.clientX - box.left - box.width / 2;
+      const y = event.clientY - box.top - box.height / 2;
+      btn.style.transform = `translate(${x * 0.08}px, ${y * 0.12}px)`;
+    });
+
+    btn.addEventListener("pointerleave", () => {
+      btn.style.transform = "";
+    });
+  });
+}
+
+function initGoogleSidePopup() {
+  const popup = document.querySelector("[data-google-popup]");
+  if (!popup) return;
+
+  const closeButton = popup.querySelector("[data-google-popup-close]");
+  const key = "pdfsign_google_popup_closed_v1";
+  const closedAt = Number(window.localStorage.getItem(key) || "0");
+  const cooloffMs = 24 * 60 * 60 * 1000;
+
+  if (Date.now() - closedAt < cooloffMs) {
+    return;
+  }
+
+  popup.hidden = false;
+  window.setTimeout(() => {
+    popup.classList.add("is-visible");
+  }, 450);
+
+  closeButton?.addEventListener("click", () => {
+    popup.classList.remove("is-visible");
+    window.localStorage.setItem(key, String(Date.now()));
+    window.setTimeout(() => {
+      popup.hidden = true;
+    }, 180);
   });
 }

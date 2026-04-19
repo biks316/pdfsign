@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
 {% block content %}
 <section class="page-hero"><div class="container"><h1>My Account</h1><p>Manage account and connected sign-in methods.</p></div></section>
-<section class="section"><div class="container content-section"><h2>Profile</h2><p>Email: {{ request.user.email }}</p><p>User ID: {{ request.user.id }}</p><div class="row"><a class="btn btn-sm" href="{% url 'socialaccount_connections' %}">Connected Providers</a><a class="btn btn-sm btn-secondary" href="{% url 'account_change_password' %}">Change Password</a></div></div></section>
+<section class="section"><div class="container content-section"><h2>Profile</h2><p>Email: {{ request.user.email }}</p><p>User ID: {{ request.user.id }}</p><p>Plan: {{ plan.get_plan_display }} ({{ plan.attempts_used }}/{{ plan.max_attempts }} attempts used, {{ plan.attempts_left }} left)</p><div class="row"><a class="btn btn-sm" href="{% url 'accounts:upgrade' %}">Upgrade Plan</a><a class="btn btn-sm" href="{% url 'socialaccount_connections' %}">Connected Providers</a><a class="btn btn-sm btn-secondary" href="{% url 'account_change_password' %}">Change Password</a></div></div></section>
 {% endblock %}

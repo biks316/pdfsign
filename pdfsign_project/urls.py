@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
+from accounts.views import admin_latest_users_view
 from core.sitemaps import StaticViewSitemap
 
 sitemaps = {
@@ -11,7 +12,8 @@ sitemaps = {
 }
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', admin_latest_users_view, name='admin_latest_users'),
+    path('admin/site/', admin.site.urls),
     path('', include('core.urls')),
     path('pdf-tools/', include('pdf_tools.urls')),
     path('image-tools/', include('image_tools.urls')),

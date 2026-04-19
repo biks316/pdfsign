@@ -3,6 +3,28 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+def _load_dotenv_file(path: Path) -> None:
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding='utf-8').splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if line.startswith('export '):
+            line = line[len('export '):].strip()
+        if '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        key = key.strip()
+        value = value.strip()
+        if value and ((value[0] == value[-1]) and value[0] in ('"', "'")):
+            value = value[1:-1]
+        if key:
+            os.environ.setdefault(key, value)
+
+
+_load_dotenv_file(BASE_DIR / '.env')
+
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-change-me')
 DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() == 'true'
 ALLOWED_HOSTS = [
@@ -28,6 +50,8 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.github',
+    'allauth.socialaccount.providers.microsoft',
     'core',
     'accounts',
     'pdf_tools',
@@ -42,6 +66,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'core.middleware.ServiceLoginRequiredMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
 ]
@@ -106,10 +131,13 @@ LOGOUT_REDIRECT_URL = 'core:home'
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_SIGNUP_FORM_CLASS = 'accounts.forms.PlanSignupForm'
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_EMAIL_VERIFICATION = os.getenv('ACCOUNT_EMAIL_VERIFICATION', 'optional')
+ACCOUNT_EMAIL_VERIFICATION = os.getenv('ACCOUNT_EMAIL_VERIFICATION', 'mandatory')
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 
 SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -118,18 +146,53 @@ AUTHENTICATION_BACKENDS = [
 
 GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
 GOOGLE_OAUTH_SECRET = os.getenv('GOOGLE_OAUTH_SECRET', '')
+GITHUB_OAUTH_CLIENT_ID = os.getenv('GITHUB_OAUTH_CLIENT_ID', '')
+GITHUB_OAUTH_SECRET = os.getenv('GITHUB_OAUTH_SECRET', '')
+MICROSOFT_OAUTH_CLIENT_ID = os.getenv('MICROSOFT_OAUTH_CLIENT_ID', '')
+MICROSOFT_OAUTH_SECRET = os.getenv('MICROSOFT_OAUTH_SECRET', '')
+MICROSOFT_OAUTH_TENANT = os.getenv('MICROSOFT_OAUTH_TENANT', 'common')
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
-    }
+    },
+    'github': {
+        'SCOPE': ['user:email'],
+    },
+    'microsoft': {
+        'SCOPE': ['openid', 'email', 'profile', 'User.Read'],
+        'AUTH_PARAMS': {'prompt': 'select_account'},
+        'TENANT': MICROSOFT_OAUTH_TENANT,
+    },
 }
+
 if GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_SECRET:
-    SOCIALACCOUNT_PROVIDERS['google']['APP'] = {
+    google_app = {
         'client_id': GOOGLE_OAUTH_CLIENT_ID,
         'secret': GOOGLE_OAUTH_SECRET,
         'key': '',
     }
+    SOCIALACCOUNT_PROVIDERS['google']['APP'] = google_app
+    SOCIALACCOUNT_PROVIDERS['google']['APPS'] = [google_app]
+
+if GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_SECRET:
+    github_app = {
+        'client_id': GITHUB_OAUTH_CLIENT_ID,
+        'secret': GITHUB_OAUTH_SECRET,
+        'key': '',
+    }
+    SOCIALACCOUNT_PROVIDERS['github']['APP'] = github_app
+    SOCIALACCOUNT_PROVIDERS['github']['APPS'] = [github_app]
+
+if MICROSOFT_OAUTH_CLIENT_ID and MICROSOFT_OAUTH_SECRET:
+    microsoft_app = {
+        'client_id': MICROSOFT_OAUTH_CLIENT_ID,
+        'secret': MICROSOFT_OAUTH_SECRET,
+        'key': '',
+    }
+    SOCIALACCOUNT_PROVIDERS['microsoft']['APP'] = microsoft_app
+    SOCIALACCOUNT_PROVIDERS['microsoft']['APPS'] = [microsoft_app]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'

@@ -1,5 +1,31 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="page-hero"><div class="container"><h1>Create Account</h1><p>Sign up with email/password or Google.</p></div></section>
-<section class="section"><div class="container form-wrap"><div class="card form-card"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Create Account</button></form></div><div class="card"><h2>Prefer OAuth?</h2><a class="btn" href="/accounts/google/login/">Sign Up with Google</a><p class="helper">Configure Google SocialApp in admin to enable this route.</p></div></div></section>
+<section class="page-hero"><div class="container"><h1>Create Account</h1><p>Pick a plan, then sign up with email/password, Google, Microsoft, or GitHub.</p></div></section>
+<section class="section">
+  <div class="container">
+    <div class="plan-grid">
+      <button class="plan-card is-selected" type="button" data-plan-card data-plan="free"><h3>Free Plan</h3><p class="plan-price">$0 / month</p><p class="plan-attempts">5 attempts</p><ul class="plan-features"><li>Basic access</li><li>Core editor tools</li><li>Starter support</li></ul></button>
+      <button class="plan-card" type="button" data-plan-card data-plan="silver"><h3>Silver Plan</h3><p class="plan-price">$5 / month</p><p class="plan-attempts">7 attempts</p><ul class="plan-features"><li>Everything in Free</li><li>2 extra attempts</li><li>Priority processing</li></ul></button>
+      <button class="plan-card" type="button" data-plan-card data-plan="gold"><h3>Gold Plan</h3><p class="plan-price">$10 / month</p><p class="plan-attempts">10 attempts</p><ul class="plan-features"><li>Everything in Silver</li><li>Highest limit</li><li>Best support tier</li></ul></button>
+    </div>
+  </div>
+</section>
+<section class="section"><div class="container form-wrap"><div class="card form-card"><form method="post">{% csrf_token %}{% for field in form %}{% if field.name != 'plan' %}<p><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<span class="helper">{{ field.errors|join:', ' }}</span>{% endif %}</p>{% endif %}{% endfor %}<input type="hidden" name="plan" id="plan-input" value="{{ form.plan.value|default:'free' }}"><button class="btn" type="submit">Create Account</button></form></div><div class="card"><h2>Continue with OAuth</h2><div class="row"><a class="btn btn-gloss oauth-btn oauth-btn-google" href="/accounts/google/login/?process=signup"><span class="oauth-glyph" aria-hidden="true">G</span><span>Sign Up with Google</span></a><a class="btn btn-secondary" href="/accounts/microsoft/login/?process=signup">Sign Up with Microsoft</a><a class="btn btn-secondary" href="/accounts/github/login/?process=signup">Sign Up with GitHub</a></div><p class="helper">OAuth signups default to Free plan. You can upgrade later.</p></div></div></section>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('[data-plan-card]');
+    const input = document.getElementById('plan-input');
+    if (!cards.length || !input) return;
+    cards.forEach((card) => {
+      if (card.dataset.plan === input.value) {
+        card.classList.add('is-selected');
+      }
+      card.addEventListener('click', () => {
+        cards.forEach((el) => el.classList.remove('is-selected'));
+        card.classList.add('is-selected');
+        input.value = card.dataset.plan || 'free';
+      });
+    });
+  });
+</script>
 {% endblock %}

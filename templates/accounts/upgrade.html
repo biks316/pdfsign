@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <h1>Upgrade Plan</h1>
+    <p>Your current plan is <strong>{{ plan.get_plan_display }}</strong> with {{ plan.attempts_left }} attempts left.</p>
+    {% if next_url %}<p class="helper">Requested tool: {{ next_url }}</p>{% endif %}
+  </div>
+</section>
+<section class="section">
+  <div class="container">
+    <div class="plan-grid">
+      <div class="plan-card{% if plan.plan == 'free' %} is-selected{% endif %}">
+        <h3>Free Plan</h3>
+        <p class="plan-price">$0 / month</p>
+        <p class="plan-attempts">5 attempts</p>
+        <ul class="plan-features">
+          <li>Basic PDF and image tool access</li>
+          <li>Account dashboard and profile</li>
+          <li>Community-level support</li>
+        </ul>
+        <button type="button" class="btn btn-sm btn-secondary" disabled>Current / Included</button>
+      </div>
+      <div class="plan-card{% if plan.plan == 'silver' %} is-selected{% endif %}">
+        <h3>Silver Plan</h3>
+        <p class="plan-price">${{ plan_prices.silver }} / month</p>
+        <p class="plan-attempts">7 attempts</p>
+        <ul class="plan-features">
+          <li>Everything in Free</li>
+          <li>Extra monthly attempt quota</li>
+          <li>Priority queue for processing jobs</li>
+        </ul>
+        <a class="btn btn-sm" href="{% url 'accounts:checkout' 'silver' %}">Pay $5/month</a>
+      </div>
+      <div class="plan-card{% if plan.plan == 'gold' %} is-selected{% endif %}">
+        <h3>Gold Plan</h3>
+        <p class="plan-price">${{ plan_prices.gold }} / month</p>
+        <p class="plan-attempts">10 attempts</p>
+        <ul class="plan-features">
+          <li>Everything in Silver</li>
+          <li>Highest monthly attempt quota</li>
+          <li>Best support response window</li>
+        </ul>
+        <a class="btn btn-sm btn-gloss" href="{% url 'accounts:checkout' 'gold' %}">Pay $10/month</a>
+      </div>
+    </div>
+    <p class="helper mt-20">Click payment to continue to checkout and confirm your upgrade.</p>
+  </div>
+</section>
+{% endblock %}

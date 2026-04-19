@@ -18,15 +18,112 @@ if (!layout) {
   const includeDateCheckbox = document.getElementById('include-date');
   const signForm = document.getElementById('sign-form');
   const placementsInput = document.getElementById('placements-json');
+  const recentSignaturesWrap = document.getElementById('recent-signatures-wrap');
+  const recentSignaturesLabel = document.getElementById('recent-signatures-label');
+  const recentSignaturesContainer = document.getElementById('recent-signatures');
 
   let hasInk = false;
   let drawing = false;
   let signatureDataUrl = '';
   const placements = [];
   let placementCounter = 0;
+  const RECENT_SIGNATURES_KEY = 'pdfsign_recent_signatures_v1';
+  const MAX_RECENT_SIGNATURES = 2;
+  let recentSignatures = [];
+  let activeRecentSignature = '';
+
+  function setStatus(message = '', tone = '') {
+    if (!placementStatus) {
+      return;
+    }
+    placementStatus.textContent = message;
+    placementStatus.dataset.tone = tone;
+  }
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
+  }
+
+  function loadRecentSignatures() {
+    try {
+      const raw = window.localStorage.getItem(RECENT_SIGNATURES_KEY);
+      if (!raw) {
+        return [];
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      return parsed
+        .filter((item) => typeof item === 'string' && item.startsWith('data:image/'))
+        .slice(0, MAX_RECENT_SIGNATURES);
+    } catch {
+      return [];
+    }
+  }
+
+  function persistRecentSignatures() {
+    try {
+      window.localStorage.setItem(RECENT_SIGNATURES_KEY, JSON.stringify(recentSignatures));
+    } catch {
+      // Ignore storage errors.
+    }
+  }
+
+  function renderRecentSignatures() {
+    if (!recentSignaturesContainer) {
+      return;
+    }
+    recentSignaturesContainer.innerHTML = '';
+
+    if (!recentSignatures.length) {
+      if (recentSignaturesWrap) {
+        recentSignaturesWrap.hidden = true;
+      }
+      return;
+    }
+
+    if (recentSignaturesWrap) {
+      recentSignaturesWrap.hidden = false;
+    }
+    if (recentSignaturesLabel) {
+      recentSignaturesLabel.textContent = `Recent signatures (${recentSignatures.length})`;
+    }
+
+    recentSignatures.forEach((dataUrl, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'recent-signature-btn';
+      button.title = 'Use this signature';
+      button.setAttribute('aria-label', `Use recent signature ${index + 1}`);
+      if (activeRecentSignature === dataUrl) {
+        button.classList.add('is-active');
+      }
+
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.alt = `Recent signature ${index + 1}`;
+      button.appendChild(img);
+
+      button.addEventListener('click', () => {
+        signatureDataUrl = dataUrl;
+        activeRecentSignature = dataUrl;
+        renderRecentSignatures();
+        setStatus(`Using recent signature ${index + 1}.`, 'ok');
+      });
+
+      recentSignaturesContainer.appendChild(button);
+    });
+  }
+
+  function rememberSignature(dataUrl) {
+    if (!dataUrl || !dataUrl.startsWith('data:image/')) {
+      return;
+    }
+    recentSignatures = [dataUrl, ...recentSignatures.filter((item) => item !== dataUrl)]
+      .slice(0, MAX_RECENT_SIGNATURES);
+    persistRecentSignatures();
+    renderRecentSignatures();
   }
 
   function pointFromEvent(event) {
@@ -81,13 +178,13 @@ if (!layout) {
       include_signature: item.includeSignature,
       include_date: item.includeDate,
     })));
-    placementStatus.textContent = `Placements: ${placements.length}`;
+    setStatus(`Placements: ${placements.length}`);
   }
 
   function removeLastPlacement() {
     const last = placements.pop();
     if (!last) {
-      placementStatus.textContent = 'Placements: 0';
+      setStatus('Placements: 0');
       return;
     }
     pagesContainer.querySelectorAll(`[data-placement-id="${last.id}"]`).forEach((node) => node.remove());
@@ -99,7 +196,7 @@ if (!layout) {
     const includeDate = includeDateCheckbox.checked;
 
     if (!includeSignature && !includeDate) {
-      placementStatus.textContent = 'Choose signature, date, or both.';
+      setStatus('Choose signature, date, or both.', 'warn');
       return;
     }
 
@@ -108,7 +205,7 @@ if (!layout) {
         signatureDataUrl = trimmedDataUrl();
       }
       if (!signatureDataUrl) {
-        placementStatus.textContent = 'Draw or upload a signature first.';
+        setStatus('Draw or upload a signature first.', 'warn');
         return;
       }
     }
@@ -254,12 +351,19 @@ if (!layout) {
       ctx.lineTo(p.x, p.y);
       ctx.stroke();
       hasInk = true;
-      signatureDataUrl = trimmedDataUrl();
     });
 
     ['pointerup', 'pointerleave', 'pointercancel'].forEach((name) => {
       signatureCanvas.addEventListener(name, () => {
         drawing = false;
+        const nextSignature = trimmedDataUrl();
+        if (!nextSignature) {
+          return;
+        }
+        signatureDataUrl = nextSignature;
+        activeRecentSignature = nextSignature;
+        rememberSignature(signatureDataUrl);
+        setStatus('Signature captured.', 'ok');
       });
     });
 
@@ -267,7 +371,12 @@ if (!layout) {
       ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
       hasInk = false;
       signatureDataUrl = '';
-      placementStatus.textContent = 'Signature cleared.';
+      activeRecentSignature = '';
+      if (signatureUpload) {
+        signatureUpload.value = '';
+      }
+      renderRecentSignatures();
+      setStatus('');
     });
 
     removeButton.addEventListener('click', removeLastPlacement);
@@ -282,7 +391,9 @@ if (!layout) {
         if (typeof reader.result === 'string') {
           signatureDataUrl = reader.result;
           hasInk = true;
-          placementStatus.textContent = 'Signature image loaded.';
+          activeRecentSignature = signatureDataUrl;
+          rememberSignature(signatureDataUrl);
+          setStatus('Signature image loaded.', 'ok');
         }
       };
       reader.readAsDataURL(file);
@@ -326,15 +437,28 @@ if (!layout) {
   signForm.addEventListener('submit', (event) => {
     if (!placements.length) {
       event.preventDefault();
-      placementStatus.textContent = 'Add at least one placement before applying.';
+      setStatus('Add at least one placement before applying.', 'warn');
       return;
     }
     syncInput();
   });
 
+  window.addEventListener('keydown', (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      removeLastPlacement();
+      return;
+    }
+    if (event.key === 'Escape') {
+      clearButton?.click();
+    }
+  });
+
+  recentSignatures = loadRecentSignatures();
+  renderRecentSignatures();
   initSignatureCanvas();
   syncInput();
   renderPdf().catch(() => {
-    placementStatus.textContent = 'Failed to load PDF preview.';
+    setStatus('Failed to load PDF preview.', 'warn');
   });
 }

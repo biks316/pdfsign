@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <h1>Latest Users</h1>
+    <p>Newest accounts in the database (most recent first).</p>
+  </div>
+</section>
+<section class="section">
+  <div class="container card">
+    <div class="row" style="justify-content: space-between; align-items: center;">
+      <p class="helper" style="margin: 0;">Showing up to 200 users</p>
+      <a class="btn btn-sm btn-secondary" href="/admin/site/">Open Django Admin</a>
+    </div>
+    <div class="users-table-wrap mt-20">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Email / Username</th>
+            <th>Name</th>
+            <th>Joined</th>
+            <th>Social</th>
+            <th>Flags</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+            <tr>
+              <td>{{ user.id }}</td>
+              <td>{{ user.email|default:user.username }}</td>
+              <td>{{ user.get_full_name|default:'-' }}</td>
+              <td>{{ user.date_joined|date:"Y-m-d H:i" }}</td>
+              <td>
+                {% with links=user.socialaccount_set.all %}
+                  {% if links %}
+                    {% for link in links %}{{ link.provider }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                  {% else %}
+                    email
+                  {% endif %}
+                {% endwith %}
+              </td>
+              <td>
+                {% if user.is_superuser %}superuser {% endif %}
+                {% if user.is_staff %}staff {% endif %}
+                {% if not user.is_superuser and not user.is_staff %}user{% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6">No users found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
