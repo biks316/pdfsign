@@ -2,16 +2,54 @@
 {% block content %}
 <section class="page-hero"><div class="container"><h1>Sign PDF</h1><p>Upload a PDF to draw or upload your signature and place it where needed.</p></div></section>
 <section class="section">
-  <div class="container form-wrap">
+  <div class="container form-wrap sign-upload-workspace" data-sign-upload-workspace>
     <div class="card form-card">
       {% if error_message %}<div class="alert">{{ error_message }}</div>{% endif %}
-      <form method="post" enctype="multipart/form-data">
+      <form method="post" enctype="multipart/form-data" id="sign-upload-form" data-sign-upload-form>
         {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn" type="submit">Upload and Continue</button>
+        <h2>Upload PDF</h2>
+        <div class="sign-upload-main" data-sign-upload-main>
+          <div class="upload-control">
+            <label for="{{ form.pdf_file.id_for_label }}" class="upload-dropzone upload-dropzone-gloss" id="sign-upload-zone">
+              <span class="upload-gloss-orb" aria-hidden="true"></span>
+              <span class="upload-svg-wrap" aria-hidden="true">
+                <svg class="upload-svg-icon" viewBox="0 0 24 24">
+                  <path d="M12 4v11"></path>
+                  <path d="m8.3 8.2 3.7-4.2 3.7 4.2"></path>
+                  <path d="M4 15.5v2.4c0 1.2.9 2.1 2.1 2.1h11.8c1.2 0 2.1-.9 2.1-2.1v-2.4"></path>
+                  <path d="M7.4 12.7c1.2-1 2.6-1.5 4.6-1.5s3.4.5 4.6 1.5"></path>
+                </svg>
+              </span>
+              <span class="upload-copy">
+                <span class="upload-title">Drop your PDF here</span>
+                <span class="upload-sub" id="sign-upload-name">PDF up to your browser upload limit</span>
+              </span>
+            </label>
+            {{ form.pdf_file }}
+          </div>
+
+          {% if form.pdf_file.errors %}
+            <ul class="errorlist">{% for error in form.pdf_file.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+          {% endif %}
+          <p class="helper">Your PDF stays in a temporary workspace while you place the signature.</p>
+          <button class="btn" type="submit">Upload and Continue</button>
+        </div>
       </form>
     </div>
     <div>
+      <div class="content-section sign-upload-sidebar" id="sign-upload-sidebar" aria-live="polite">
+        <h2>Upload Sidebar</h2>
+        <p class="helper">Upload captured. Continue from here.</p>
+        <div class="sign-upload-file-chip">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H7a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8l-6-6zm0 1.8L18.2 8H14V3.8zM7 4h5v4a2 2 0 0 0 2 2h4v9a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path></svg>
+          <span id="sign-upload-sidebar-name">No file selected</span>
+        </div>
+        <div class="row">
+          <button type="button" class="btn btn-sm btn-secondary" id="sign-upload-change">Change File</button>
+          <button type="submit" class="btn btn-sm" form="sign-upload-form">Upload and Continue</button>
+        </div>
+      </div>
+
       <div class="content-section"><h2>What this tool does</h2><p>Places a signature image overlay and optional date overlay on top of your PDF without rewriting original content blocks.</p></div>
       <div class="content-section"><h2>How to use</h2><ol class="list-clean"><li>Upload your PDF.</li><li>Draw or upload a signature.</li><li>Click one or more placement points and download.</li></ol></div>
       <div class="content-section"><h2>Benefits</h2><ul class="list-clean"><li>Fast in-browser preview with pdf.js.</li><li>Supports multiple placements across pages.</li><li>Maintains document layout.</li></ul></div>
@@ -19,4 +57,66 @@
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const workspace = document.querySelector('[data-sign-upload-workspace]');
+    const form = document.querySelector('[data-sign-upload-form]');
+    if (!workspace || !form) return;
+
+    const fileInput = form.querySelector('input[type="file"]');
+    const uploadZone = document.getElementById('sign-upload-zone');
+    const uploadName = document.getElementById('sign-upload-name');
+    const sidebarName = document.getElementById('sign-upload-sidebar-name');
+    const changeButton = document.getElementById('sign-upload-change');
+
+    if (!fileInput || !uploadZone || !uploadName || !sidebarName) return;
+
+    const baseLabel = 'PDF up to your browser upload limit';
+
+    const setUploadState = (fileName) => {
+      const hasFile = Boolean(fileName);
+      workspace.classList.toggle('is-uploaded', hasFile);
+      uploadZone.classList.toggle('has-file', hasFile);
+      uploadName.textContent = hasFile ? fileName : baseLabel;
+      sidebarName.textContent = hasFile ? fileName : 'No file selected';
+    };
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      setUploadState(file ? file.name : '');
+    });
+
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      uploadZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        uploadZone.classList.add('is-dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach((eventName) => {
+      uploadZone.addEventListener(eventName, () => {
+        uploadZone.classList.remove('is-dragover');
+      });
+    });
+
+    uploadZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      if (!event.dataTransfer || !event.dataTransfer.files.length) return;
+      fileInput.files = event.dataTransfer.files;
+      const file = fileInput.files[0];
+      setUploadState(file ? file.name : '');
+    });
+
+    if (changeButton) {
+      changeButton.addEventListener('click', () => {
+        fileInput.click();
+      });
+    }
+
+    setUploadState(fileInput.files && fileInput.files[0] ? fileInput.files[0].name : '');
+  });
+</script>
 {% endblock %}
